@@ -473,6 +473,19 @@ function estimateCustomerRecord(estimate = {}) {
   return record.key ? record : null;
 }
 
+async function removeStaleEstimateCustomerRecords(activeEstimateCustomerKeys = new Set()) {
+  if (!databaseConfigured()) return 0;
+  await ensureLookupSchema();
+  const keys = [...activeEstimateCustomerKeys].filter(Boolean);
+  const result = keys.length
+    ? await query(
+      "DELETE FROM customers WHERE source_name = 'estimate' AND lookup_key <> ALL($1::text[])",
+      [keys],
+    )
+    : await query("DELETE FROM customers WHERE source_name = 'estimate'");
+  return result.rowCount || 0;
+}
+
 function rowDate(value) {
   return value ? new Date(value).toISOString() : "";
 }
@@ -1047,6 +1060,7 @@ function productRecordFromEstimateItem(estimate, item) {
 async function saveEstimateRecords(estimates = []) {
   if (!databaseConfigured()) return null;
   await ensureLookupSchema();
+  const activeEstimateCustomerKeys = new Set();
   for (const estimate of estimates) {
     if (!estimate?.estimateId) continue;
     const fields = estimateDbFields(estimate);
@@ -1100,12 +1114,16 @@ async function saveEstimateRecords(estimates = []) {
       ],
     );
     const customer = estimateCustomerRecord(estimate);
-    if (customer) await upsertCustomerRecord(customer);
+    if (customer) {
+      activeEstimateCustomerKeys.add(customer.key);
+      await upsertCustomerRecord(customer);
+    }
     for (const item of Array.isArray(estimate.cabinetItems) ? estimate.cabinetItems : []) {
       const product = productRecordFromEstimateItem(estimate, item);
       if (product) await upsertProductRecord(product);
     }
   }
+  await removeStaleEstimateCustomerRecords(activeEstimateCustomerKeys);
   return true;
 }
 

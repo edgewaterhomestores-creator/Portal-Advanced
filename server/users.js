@@ -751,13 +751,18 @@ async function findCustomerAccountByCustomerKey(lastNameKey, phoneLast4, email =
   const key = normalizeCustomerNameKey(lastNameKey);
   const phone = clean(phoneLast4).replace(/\D/g, "").slice(-4);
   const emailKey = normalizeEmail(email);
+
+  if (emailKey) {
+    const accountByEmail = store.customers.find((item) => !item.disabled && normalizeEmail(item.email) === emailKey);
+    if (accountByEmail) return publicCustomerAccount(accountByEmail);
+  }
+
   const account = store.customers.find((item) => (
     !item.disabled
+    && key
     && normalizeCustomerNameKey(item.lastNameKey) === key
-    && (
-      (phone && clean(item.phoneLast4).replace(/\D/g, "").slice(-4) === phone)
-      || (emailKey && normalizeEmail(item.email) === emailKey)
-    )
+    && phone
+    && clean(item.phoneLast4).replace(/\D/g, "").slice(-4) === phone
   ));
   return publicCustomerAccount(account);
 }
@@ -776,12 +781,21 @@ async function upsertCustomerAccount({ email, password, packet, name }) {
   }
 
   const store = await loadStore();
+  const packetCustomer = packet?.data?.customer || {};
   const key = {
-    lastNameKey: normalizeUsername(packet.data.customer.lastName).replace(/[^a-z0-9]/g, ""),
-    phoneLast4: clean(packet.data.customer.phone1 || packet.data.customer.phone2).replace(/\D/g, "").slice(-4),
+    lastNameKey: normalizeUsername(packetCustomer.lastName).replace(/[^a-z0-9]/g, ""),
+    phoneLast4: clean(packetCustomer.phone1 || packetCustomer.phone2).replace(/\D/g, "").slice(-4),
   };
   const now = new Date().toISOString();
   let account = store.customers.find((item) => normalizeEmail(item.email) === emailKey);
+
+  if (!account && key.lastNameKey && key.phoneLast4) {
+    account = store.customers.find((item) => (
+      !item.disabled
+      && normalizeCustomerNameKey(item.lastNameKey) === key.lastNameKey
+      && clean(item.phoneLast4).replace(/\D/g, "").slice(-4) === key.phoneLast4
+    ));
+  }
 
   if (!account) {
     account = {
@@ -793,7 +807,7 @@ async function upsertCustomerAccount({ email, password, packet, name }) {
   }
 
   account.email = emailKey;
-  account.name = clean(name) || [packet.data.customer.firstName, packet.data.customer.lastName].map(clean).filter(Boolean).join(" ");
+  account.name = clean(name) || [packetCustomer.firstName, packetCustomer.lastName].map(clean).filter(Boolean).join(" ");
   account.lastNameKey = key.lastNameKey;
   account.phoneLast4 = key.phoneLast4;
   account.passwordHash = await hashPassword(password);
