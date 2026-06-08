@@ -142,12 +142,13 @@ app.use(session({
   name: "edgewater.sid",
   secret: process.env.SESSION_SECRET || "dev-only-change-me",
   store: sessionStore,
+  proxy: true,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" ? "auto" : false,
     maxAge: 1000 * 60 * 60 * 8,
   },
 }));
