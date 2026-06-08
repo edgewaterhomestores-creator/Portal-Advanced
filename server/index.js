@@ -387,6 +387,15 @@ function clearStaffSession(req) {
   clearStaffSessionId(req.sessionID);
 }
 
+function saveSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.save((error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
 function recordLockKey(type, id) {
   return `${type}:${text(id)}`;
 }
@@ -2241,6 +2250,7 @@ app.post("/api/login", async (req, res, next) => {
     const notifications = staffUser.envAdmin ? [] : await popStaffNotifications(staffUser.username);
     req.session.staffNotifications = notifications;
     await logEvent("info", "admin_login_success", { request: requestMeta(req), username: staffUser.username });
+    await saveSession(req);
     res.json({
       ok: true,
       mustChangePassword: Boolean(staffUser.mustChangePassword),
@@ -2607,6 +2617,7 @@ app.post("/api/customer/login", async (req, res, next) => {
     const accountLogin = await authenticateCustomerAccountByLastName(lastNameKey, rawPassword);
     if (accountLogin) {
       setCustomerSessionFromAccount(req, accountLogin);
+      await saveSession(req);
       await logEvent("info", "customer_account_last_name_login_success", {
         request: requestMeta(req),
         customer: req.session.customer,
@@ -2646,6 +2657,7 @@ app.post("/api/customer/login", async (req, res, next) => {
     }
 
     setCustomerSessionFromPacket(req, packet);
+    await saveSession(req);
     await logEvent("info", "customer_login_success", {
       request: requestMeta(req),
       customer: req.session.customer,
@@ -2673,6 +2685,7 @@ app.post("/api/customer/account/login", async (req, res, next) => {
     }
 
     setCustomerSessionFromAccount(req, account);
+    await saveSession(req);
     await logEvent("info", "customer_account_login_success", {
       request: requestMeta(req),
       customer: req.session.customer,

@@ -39,6 +39,7 @@ clearOnLoadInputs.forEach((input) => {
 async function tryStaffLogin(loginName, password, reclaimExistingUser = false) {
   const response = await fetch("/api/login", {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       username: loginName,
@@ -104,6 +105,7 @@ registeredCustomerLoginForm.addEventListener("submit", async (event) => {
 
   const response = await fetch("/api/customer/account/login", {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       email: loginName,
@@ -152,6 +154,7 @@ registeredResetForm.addEventListener("submit", async (event) => {
   registeredCustomerLoginError.textContent = "Sending reset request...";
   const response = await fetch("/api/account/password-reset/request", {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       email,
@@ -175,6 +178,7 @@ customerLoginForm.addEventListener("submit", async (event) => {
 
   const response = await fetch("/api/customer/login", {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       lastName: customerLoginForm.elements.contractLookupLastName.value.trim(),
