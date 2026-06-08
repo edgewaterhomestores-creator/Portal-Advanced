@@ -8,6 +8,7 @@ data/estimates/*
 data/estimate-module/*
 data/preimport/incoming/*
 data/preimport/ocr/*
+data/preimport/*.json
 !data/generated/.gitkeep
 !data/packets/.gitkeep
 !data/logs/.gitkeep
