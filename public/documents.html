@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Document Inbox</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell document-inbox-shell">
+      <section class="document-inbox-head">
+        <div>
+          <h1 id="document-inbox-title">Document Inbox</h1>
+          <p id="document-inbox-subtitle">Review vendor quotes, supplier acknowledgements, receipts, estimates, and other customer documents before attaching them.</p>
+        </div>
+        <div class="document-inbox-actions">
+          <button class="primary" id="document-scan-button" type="button">Check Vendor Emails to Attach</button>
+          <a class="button-link ghost" href="/admin?tab=preimport">Admin Import Tools</a>
+        </div>
+      </section>
+
+      <section id="document-inbox-status" class="document-inbox-status status-loading" aria-live="polite">
+        <strong>Checking document queue...</strong>
+        <span>Loading status.</span>
+      </section>
+
+      <section class="document-inbox-layout">
+        <form id="document-upload-form" class="panel document-upload-panel">
+          <h2>Upload / Scan Document</h2>
+          <p>Use this when a PDF was scanned, saved locally, or handed to the store outside email.</p>
+          <label>Choose document files
+            <input name="documents" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,application/pdf,image/png,image/jpeg,image/webp,image/tiff" />
+          </label>
+          <button class="primary" type="submit">Upload to Review Queue</button>
+        </form>
+
+        <section class="panel document-review-panel">
+          <div class="section-head">
+            <div>
+              <h2>Review Queue</h2>
+              <p>OCR suggestions are for review only. Staff chooses where to attach each document.</p>
+            </div>
+            <button class="ghost" id="document-refresh-button" type="button">Refresh</button>
+          </div>
+          <div id="document-inbox-list" class="document-inbox-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/documents.js"></script>
+  </body>
+</html>

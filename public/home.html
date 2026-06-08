@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edgewater Contract Portal</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell entry-shell compact-entry-shell">
+      <div class="entry-layout">
+        <section class="entry-panel customer-first-contract-panel" id="quick-lookup-tools">
+          <div class="entry-panel-head">
+            <div>
+              <h2>First Contract Access</h2>
+              <p class="muted-text">Use the contract password from Edgewater. After registration, use Registered Login.</p>
+            </div>
+          </div>
+          <form id="customer-login-form" class="grid entry-login-grid" autocomplete="off">
+            <label>Last name<input name="contractLookupLastName" autocomplete="off" autocapitalize="words" spellcheck="false" data-clear-on-load required /></label>
+            <label>Password<input class="masked-entry-secret" name="contractLookupCode" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-clear-on-load data-secret-toggle required /></label>
+            <div class="entry-form-actions two-actions wide">
+              <button class="primary" type="submit">Login</button>
+              <button class="ghost" type="reset">Clear</button>
+            </div>
+          </form>
+          <p id="customer-login-error" class="error"></p>
+        </section>
+
+        <section class="entry-panel" id="portal-entry-panel">
+          <div class="entry-panel-head">
+            <div>
+              <h2>Customer, Staff or Installer <span class="heading-note">(registered)</span></h2>
+              <p class="muted-text">Staff use the username or email set up by admin. Customers use the email registered after first contract access.</p>
+            </div>
+          </div>
+          <form id="registered-customer-login-form" class="grid entry-login-grid" autocomplete="off">
+            <label>Username / Email<input name="registeredLoginName" autocomplete="off" autocapitalize="none" spellcheck="false" data-clear-on-load required /></label>
+            <label>Password<input class="masked-entry-secret" name="registeredLoginPassword" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-clear-on-load data-secret-toggle required /></label>
+            <div class="entry-form-actions wide">
+              <button class="primary" type="submit">Login</button>
+              <button class="ghost" type="reset">Clear</button>
+              <button class="ghost" type="button" id="registered-forgot-password">Forgot Password</button>
+            </div>
+          </form>
+          <form id="registered-reset-form" class="grid entry-login-grid hidden" autocomplete="off">
+            <label>Email<input name="resetEmail" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" /></label>
+            <label>Last name<input name="resetLastName" autocomplete="off" autocapitalize="words" spellcheck="false" /></label>
+            <div class="entry-form-actions wide">
+              <button class="primary" type="submit">Send Reset Request</button>
+              <button class="ghost" type="button" id="registered-reset-cancel">Cancel</button>
+            </div>
+          </form>
+          <p class="entry-note">Installer registration is not active yet. Installers should use their direct photo upload link for now.</p>
+          <p id="registered-customer-login-error" class="error"></p>
+        </section>
+      </div>
+    </main>
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/password-toggle.js"></script>
+    <script src="/js/home.js?v=20260606-1259"></script>
+  </body>
+</html>

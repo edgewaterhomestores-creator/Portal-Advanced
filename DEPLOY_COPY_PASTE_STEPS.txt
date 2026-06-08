@@ -1,0 +1,576 @@
+CONTRACT PORTAL DEPLOY STEPS - COPY/PASTE VERSION
+Prepared: 2026-05-27
+
+CURRENT PACKAGE SOURCE - 2026-06-06
+===================================
+
+Use this continued source folder for the current Contract Portal package:
+
+F:\ONGOINGPROJECTS\CUSTOMERPORTAL_NEXT
+
+Working project/repo name:
+
+Portal-Advanced
+
+Keep the disk folder path above until a deliberate folder/repo rename is approved, because these deploy commands depend on it.
+
+The older nested copy is marked legacy:
+
+F:\ONGOINGPROJECTS\ContractsPortal\CustomerPortal
+
+The unified upload package can include the separate nested InstallerPortal app code:
+
+F:\ONGOINGPROJECTS\ContractsPortal\InstallerPortal
+
+The upload archive still excludes `.env`, `node_modules`, live data/settings, generated contracts, and uploaded installer data so deployment does not overwrite the server's working records.
+
+Use this file whenever Codex says "deploy the latest version."
+
+Archive naming note:
+
+Keep `F:\customerportal-upload.tgz` as the standard copy/paste deploy filename.
+
+Also save a numbered release copy:
+
+POSTIMPORTPORTAL 1.tgz
+POSTIMPORTPORTAL 2.tgz
+POSTIMPORTPORTAL 3.tgz
+
+Increase the number for each future package.
+
+IMPORTANT RULES
+===============
+
+1. Do not use one giant Windows batch command.
+2. Run each command one at a time.
+3. Windows CMD commands are run from Windows Command Prompt.
+4. Linux commands are run after SSH login to the server.
+5. Do not run the rsync command until the verification commands show the app files.
+6. DEVSERVER.odt is not part of deployment.
+7. The .env file on the server is preserved and should not be overwritten by upload.
+8. PDFs/documents and generated contracts are still file-based. Staff users, customer accounts, business settings, imported lookup data, contracts, estimates, and drafts use PostgreSQL when DATABASE_URL is set.
+9. Do not expose PostgreSQL, MySQL, or the Node app port directly to the internet.
+10. A fresh install with no staff users now opens /setup for first-run business/admin setup.
+
+
+CURRENT TEST LINK
+=================
+
+Open this after deployment:
+
+https://contracts.edgefam.com
+
+Also supported:
+
+https://contracts.edgefam.us
+
+Do not use the retired `contracts-v6.edgewaterhomestores.com` URL for deploy checks.
+
+
+PART 1 - WINDOWS CMD: MAKE THE UPLOAD FILE
+==========================================
+
+Open Windows Command Prompt.
+
+Run this:
+
+cd /d F:\ONGOINGPROJECTS\CUSTOMERPORTAL_NEXT
+
+Run this:
+
+tar -czf F:\customerportal-upload.tgz --exclude=.git --exclude=node_modules --exclude=.codex_tmp --exclude=.env --exclude=DEVSERVER.odt --exclude=*.exe --exclude=*.tgz --exclude=*.tar --exclude=*.zip --exclude=*.sha256*.txt --exclude=*.out.log --exclude=*.err.log --exclude=*.log --exclude=entry-login-*.png --exclude=data/generated --exclude=data/packets --exclude=data/logs --exclude=data/settings --exclude=data/estimates --exclude=data/estimate-module --exclude=data/preimport --exclude=data/quick-contracts --exclude=InstallerPortal/.git --exclude=InstallerPortal/node_modules --exclude=InstallerPortal/.codex_tmp --exclude=InstallerPortal/.env --exclude=InstallerPortal/data -C F:\ONGOINGPROJECTS\CUSTOMERPORTAL_NEXT . -C F:\ONGOINGPROJECTS\ContractsPortal InstallerPortal
+
+
+PART 2 - WINDOWS CMD: PREPARE SERVER UPLOAD FOLDER
+==================================================
+
+Run this:
+
+ssh michelle-work@192.168.1.70 "mkdir -p ~/uploads"
+
+
+PART 3 - WINDOWS CMD: SEND THE UPLOAD FILE
+==========================================
+
+Run this first so the scp command does not get confused by the F: drive path:
+
+cd /d F:\
+
+Run this:
+
+scp customerportal-upload.tgz michelle-work@192.168.1.70:/home/michelle-work/uploads/customerportal-upload.tgz
+
+
+PART 4 - WINDOWS CMD: LOG INTO THE LINUX SERVER
+===============================================
+
+Run this:
+
+ssh michelle-work@192.168.1.70
+
+
+PART 5 - LINUX SERVER: EXTRACT INTO STAGING
+===========================================
+
+You should now be logged into the Linux server.
+
+Run this:
+
+rm -rf ~/uploads/customerportal
+
+Run this:
+
+mkdir -p ~/uploads/customerportal
+
+Run this:
+
+tar -xzf ~/uploads/customerportal-upload.tgz -C ~/uploads/customerportal
+
+
+PART 6 - LINUX SERVER: VERIFY STAGING BEFORE COPYING
+====================================================
+
+Run these one at a time:
+
+ls ~/uploads/customerportal/package.json
+
+ls ~/uploads/customerportal/package-lock.json
+
+ls ~/uploads/customerportal/server/index.js
+
+ls ~/uploads/customerportal/public/home.html
+
+STOP if any of those say "No such file or directory."
+
+Do not continue to rsync unless all four files are found.
+
+
+PART 7 - LINUX SERVER: COPY STAGING TO THE APP FOLDER
+=====================================================
+
+Only run this after the verification commands above pass:
+
+sudo rsync -av --delete --exclude InstallerPortal --exclude node_modules --exclude .env --exclude 'data/generated' --exclude 'data/packets' --exclude 'data/logs' --exclude 'data/settings' --exclude 'data/estimates' --exclude 'data/estimate-module' --exclude 'data/preimport' --exclude 'data/quick-contracts' ~/uploads/customerportal/ /opt/apps/customerportal/app/
+
+
+PART 7B - LINUX SERVER: COPY INSTALLER PORTAL SIDE
+==================================================
+
+Only run this if `/opt/apps/installerportal/app` exists on the server and this unified archive includes `~/uploads/customerportal/InstallerPortal`.
+
+Run these:
+
+ls ~/uploads/customerportal/InstallerPortal/package.json
+
+ls ~/uploads/customerportal/InstallerPortal/server.js
+
+Then run:
+
+sudo rsync -av --delete --exclude node_modules --exclude .env --exclude 'data/installers/installer-job-photos' --exclude 'data/notifications' --exclude 'data/*.log' ~/uploads/customerportal/InstallerPortal/ /opt/apps/installerportal/app/
+
+
+PART 8 - LINUX SERVER: FIX OWNERSHIP
+====================================
+
+Run this:
+
+sudo chown -R customerportal:customerportal /opt/apps/customerportal/app
+
+If the InstallerPortal side was copied in Part 7B, run this too:
+
+sudo chown -R installerportal:installerportal /opt/apps/installerportal/app
+
+
+PART 9 - LINUX SERVER: INSTALL NODE PACKAGES
+============================================
+
+Run this:
+
+cd /opt/apps/customerportal/app
+
+Run this:
+
+sudo -u customerportal npm ci --omit=dev
+
+If the InstallerPortal side was copied in Part 7B, run these too:
+
+cd /opt/apps/installerportal/app
+
+sudo -u installerportal npm ci --omit=dev
+
+
+PART 10 - LINUX SERVER: RESTART THE APP
+=======================================
+
+Run this:
+
+sudo systemctl restart customerportal
+
+Run this:
+
+sudo systemctl status customerportal --no-pager
+
+You want to see:
+
+Active: active (running)
+
+If the InstallerPortal side was copied in Part 7B, run these too:
+
+sudo systemctl restart installerportal
+
+sudo systemctl status installerportal --no-pager
+
+
+PART 11 - LINUX SERVER: TEST THE APP DIRECTLY
+=============================================
+
+Run this:
+
+curl http://127.0.0.1:3000/api/health
+
+You want to see:
+
+{"ok":true}
+
+If the InstallerPortal side was copied in Part 7B, run:
+
+curl http://127.0.0.1:3011/api/health
+
+You want to see:
+
+{"ok":true}
+
+
+PART 12 - LINUX SERVER: TEST THROUGH NGINX
+==========================================
+
+Run this:
+
+curl -H "Host: contracts.edgefam.com" http://127.0.0.1/api/health
+
+You want to see:
+
+{"ok":true}
+
+
+PART 13 - BROWSER TEST
+======================
+
+Open this from another device:
+
+http://contracts-v6.edgewaterhomestores.com
+
+If the page loads, the latest app is deployed.
+
+
+PART 14 - WHAT SHOULD BE OPEN
+=============================
+
+Normal production access should be:
+
+Open:
+
+Port 80 - Nginx HTTP redirect/proxy
+
+Port 443 - Nginx HTTPS
+
+Not directly open from Windows or the internet:
+
+Port 3000 - Node app, private behind Nginx
+
+Port 3306 - MySQL, private/local only if installed
+
+Port 5432 - PostgreSQL, private/local only if installed
+
+If the direct app health check works on the server:
+
+curl http://127.0.0.1:3000/api/health
+
+that means the app is running.
+
+If this Nginx test returns a 301 redirect:
+
+curl -H "Host: contracts.edgefam.com" http://127.0.0.1/api/health
+
+that usually means Nginx is redirecting HTTP to HTTPS. To test HTTPS locally on the server, run:
+
+curl -k --resolve contracts.edgefam.com:443:127.0.0.1 https://contracts.edgefam.com/api/health
+
+You want to see:
+
+{"ok":true}
+
+
+PART 15 - POSTGRESQL LOOKUP SETUP
+=================================
+
+The portal now supports PostgreSQL for live record data:
+
+customers
+suppliers
+products
+import_runs
+contract_packets
+estimate_records
+contract_drafts
+staff_users
+customer_accounts
+portal_settings
+
+Generated PDFs, uploaded PDFs, OCR staged documents, and packet files are still stored as server files.
+
+When DATABASE_URL is set, staff users, customer portal accounts, and business settings are shared through PostgreSQL. The JSON files under data/settings are backup/migration files only.
+
+When DATABASE_URL is set, the app creates the PostgreSQL tables on startup.
+
+To make the Preimport tab write shared lookup data to PostgreSQL, edit the server .env:
+
+sudo nano /opt/apps/customerportal/app/.env
+
+Add or confirm this line:
+
+DATABASE_URL=postgresql://customer_portal_user:YOUR_POSTGRES_PASSWORD@localhost:5432/customer_portal
+
+Then restart:
+
+sudo systemctl restart customerportal
+
+For a true first store-user setup on a fresh install, open:
+
+https://contracts.edgefam.com/setup
+
+If staff users already exist, /setup redirects to the staff login page.
+
+First-run setup creates the first manager/admin username and password.
+
+After that first admin logs in, additional staff users are created at:
+
+Admin Menu > Users
+
+Use this for Jamie/Billy/Michelle or any future store employee:
+
+Name
+Username
+Temporary password
+Manager/admin checkbox if they can manage users/settings
+Must change password checkbox
+Disabled checkbox for accounts that should no longer log in
+
+Fresh installs do not automatically create Edgewater demo users unless PORTAL_SEED_STAFF=true is set in .env.
+
+After login, go to:
+
+Admin Menu > Settings > Preimport
+
+Admin > Settings > Preimport should say:
+
+Storage: PostgreSQL shared lookup tables
+
+If DATABASE_URL is blank or missing, the Preimport tab falls back to local files under:
+
+data/preimport
+
+
+PART 16 - OCR SETUP CHECK
+=========================
+
+Admin Menu > Settings > Preimport can stage PDFs/images and run OCR.
+
+The server should have these available:
+
+ocrmypdf
+tesseract
+python with pypdf
+
+Optional .env values:
+
+OCRMYPDF_BIN=ocrmypdf
+TESSERACT_BIN=tesseract
+PDFTOTEXT_BIN=pdftotext
+OCR_LANGUAGE=eng
+OCR_TIMEOUT_MS=180000
+
+If OCR fails on a scanned PDF, check logs:
+
+sudo journalctl -u customerportal -n 120 --no-pager
+
+
+PART 17 - POSTGRESQL UI FOR SOMEONE USED TO MYSQL
+=================================================
+
+Recommended Windows database UI:
+
+DBeaver Community
+
+Why:
+
+It feels familiar if you are used to MySQL tools, works with PostgreSQL and MySQL, and supports SSH tunnels.
+
+Do not connect to PostgreSQL by opening port 5432 publicly.
+
+Use an SSH tunnel instead.
+
+Option A - DBeaver built-in SSH tunnel:
+
+Main PostgreSQL settings:
+
+Host: 127.0.0.1
+Port: 5432
+Database: customer_portal
+User: customer_portal_user
+Password: the PostgreSQL password from the server .env or setup notes
+
+SSH tunnel settings:
+
+SSH host: 192.168.1.70
+SSH port: 22
+SSH user: michelle-work
+Remote database host: 127.0.0.1
+Remote database port: 5432
+
+Option B - Manual SSH tunnel from Windows, then DBeaver:
+
+Run this from Windows Command Prompt or PowerShell:
+
+ssh -L 15432:127.0.0.1:5432 michelle-work@192.168.1.70
+
+Leave that SSH window open.
+
+Then connect DBeaver to:
+
+Host: 127.0.0.1
+Port: 15432
+Database: customer_portal
+User: customer_portal_user
+
+Backup UI:
+
+pgAdmin is the official PostgreSQL admin tool, but DBeaver is usually easier when moving from MySQL because it can manage both database types in one place.
+
+
+PART 18 - IS THE DATABASE EMPTY ON A FRESH INSTALL?
+==================================================
+
+Yes. A fresh install starts with no customer contracts, no generated PDFs, no saved business settings, and empty PostgreSQL lookup tables unless you import data.
+
+The app currently stores live portal data in these folders:
+
+data/packets
+data/generated
+data/settings
+data/logs
+data/estimates
+data/estimate-module
+data/preimport
+
+The upload archive intentionally excludes those folders so deployment does not overwrite real server data.
+
+The deploy rsync command also excludes those folders for the same reason.
+
+On a brand-new install, the app creates the folders when needed, but they start empty.
+
+PostgreSQL is currently used for live record data when DATABASE_URL is set:
+
+customers
+suppliers
+products
+import_runs
+contract_packets
+estimate_records
+contract_drafts
+
+Generated PDFs, settings, OCR staged documents, and watched estimate PDF files are still file-based on the server.
+
+
+PART 19 - NEXT STEP: SECURITY LOCKDOWN
+======================================
+
+After deployment is healthy and the browser test works, use:
+
+F:\ONGOINGPROJECTS\CUSTOMERPORTAL\SECURITY_LOCKDOWN_PLAN.md
+
+Do not expose PostgreSQL, MySQL, Node port 3000, internal admin tools, or future financial modules publicly.
+
+Normal public users should reach only:
+
+HTTPS website -> Nginx -> local Node app -> local PostgreSQL/files
+
+Regular users do not need DBeaver, PostgreSQL passwords, or SSH tunnels.
+
+
+COMMON PROBLEMS
+===============
+
+Problem:
+scp says it cannot resolve hostname F.
+
+Cause:
+You ran scp from inside the Linux SSH session, or scp got confused by a Windows F: path.
+
+Fix:
+Exit SSH, return to Windows CMD, run:
+
+cd /d F:\
+
+Then run:
+
+scp customerportal-upload.tgz michelle-work@192.168.1.70:/home/michelle-work/uploads/customerportal-upload.tgz
+
+
+Problem:
+sudo says a terminal is required.
+
+Cause:
+You tried to run the server rsync/restart commands through a remote quoted ssh command.
+
+Fix:
+SSH into the server first:
+
+ssh michelle-work@192.168.1.70
+
+Then run the Linux commands directly on the server.
+
+
+Problem:
+npm ci says package-lock.json is missing.
+
+Cause:
+The staging folder is empty or incomplete, or the wrong folder was copied.
+
+Fix:
+Stop. Do not rsync. Re-run the upload and verify these files before rsync:
+
+ls ~/uploads/customerportal/package.json
+ls ~/uploads/customerportal/package-lock.json
+ls ~/uploads/customerportal/server/index.js
+ls ~/uploads/customerportal/public/home.html
+
+
+Problem:
+CSS or images are missing through the website, but work on port 3000.
+
+Cause:
+Nginx location block may be wrong. Earlier issue was using location = / instead of location /.
+
+Fix:
+Check the Nginx site file and make sure the main app proxy uses:
+
+location / {
+
+not:
+
+location = / {
+
+
+REMINDER FOR FUTURE CODEX
+=========================
+
+When the user asks how to deploy, refer to this file:
+
+F:\ONGOINGPROJECTS\CUSTOMERPORTAL\DEPLOY_COPY_PASTE_STEPS.txt
+
+Do not give a giant all-in-one Windows batch command.
+CURRENT WARNING - 2026-06-05:
+This file contains old historical deploy notes and still references retired `contracts-v6.edgewaterhomestores.com` URLs.
+Do not use this file as the current source of truth for live domain routing.
+Use LIVE_DOMAIN_ROUTING_HANDOFF.md and LOCAL_ADVANCED_TRACKING.md first.

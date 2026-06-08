@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edgewater Contract Portal Admin</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <h1 class="visually-hidden">Contracts Page</h1>
+
+      <section id="welcome-help-panel" class="result dashboard-welcome hidden" aria-live="polite">
+        <p><strong>Welcome to the Store Admin Portal</strong></p>
+        <p>Would you like guided setup now, or quick tips as you move through the portal?</p>
+        <div class="result-actions">
+          <a href="/admin?setup=1" id="start-guided-setup">Start setup</a>
+          <button type="button" id="skip-setup">Skip for now</button>
+        </div>
+      </section>
+
+      <section id="staff-notice-panel" class="result hidden" aria-live="polite"></section>
+
+      <section class="dashboard-intro" aria-label="Dashboard guidance">
+        <p>Start by searching with anything related to the transaction in the appropriate card. Add a new document of that type when the search does not find what you need.</p>
+      </section>
+
+      <div class="dashboard-layout">
+        <aside id="vendor-email-status-card" class="vendor-email-status-card status-loading" aria-live="polite">
+          <p class="status-kicker">Vendor Documents</p>
+          <h2>Check Vendor Emails to Attach</h2>
+          <p id="vendor-email-status-text">Checking incoming document queue...</p>
+          <p id="vendor-email-status-count" class="vendor-email-status-count">--</p>
+          <div class="vendor-email-actions">
+            <button type="button" id="dashboard-scan-vendor-emails">Check Now</button>
+            <a href="/documents">Review Queue</a>
+          </div>
+        </aside>
+
+        <section class="dashboard-grid" aria-label="Contract portal actions">
+          <article class="dashboard-card dashboard-card-view" id="view-estimate-tile">
+            <div class="dashboard-card-heading">
+              <div class="dashboard-card-media" data-dashboard-icon="estimate" data-icon-fallback="Estimates" aria-hidden="true">
+                <span>Estimates</span>
+              </div>
+              <div>
+                <h2>Estimates</h2>
+                <p>Search saved estimate records or start a new estimate.</p>
+              </div>
+            </div>
+            <form class="dashboard-card-search" data-dashboard-search="estimate">
+              <label class="visually-hidden" for="dashboard-estimate-search">Search estimates</label>
+              <input id="dashboard-estimate-search" name="q" autocomplete="off" placeholder="Search estimates" />
+              <button type="submit">Search</button>
+            </form>
+            <div class="dashboard-live-results" data-dashboard-results="estimate" aria-live="polite"></div>
+            <div class="dashboard-card-actions two-up">
+              <a class="button-link dashboard-primary-action" href="/estimates/new">Add Estimate</a>
+              <a class="button-link dashboard-secondary-action" href="/estimates/new">View All</a>
+            </div>
+          </article>
+
+          <article class="dashboard-card dashboard-card-create" id="contracts-tile">
+            <div class="dashboard-card-heading">
+              <div class="dashboard-card-media" data-dashboard-icon="create" data-icon-fallback="Contracts" aria-hidden="true">
+                <span>Contracts</span>
+              </div>
+              <div>
+                <h2>Contracts</h2>
+                <p>Search customer, phone, address, invoice, estimate, or record ID.</p>
+              </div>
+            </div>
+            <form class="dashboard-card-search" data-dashboard-search="contract">
+              <label class="visually-hidden" for="dashboard-contract-search">Search contracts</label>
+              <input id="dashboard-contract-search" name="q" autocomplete="off" placeholder="Search contracts" />
+              <button type="submit">Search</button>
+            </form>
+            <div class="dashboard-live-results" data-dashboard-results="contract" aria-live="polite"></div>
+            <div class="dashboard-card-actions two-up">
+              <a class="button-link dashboard-primary-action" href="/contract/new">Add New</a>
+              <a class="button-link dashboard-secondary-action" href="/contracts">View All</a>
+              <a class="button-link dashboard-secondary-action" href="/estimates/new?from=contract">Start Contract From Accepted Estimate</a>
+            </div>
+          </article>
+
+          <article class="dashboard-card dashboard-card-print">
+            <div class="dashboard-card-heading">
+              <div class="dashboard-card-media" data-dashboard-icon="print" data-icon-fallback="Print" aria-hidden="true">
+                <span>Print</span>
+              </div>
+              <div>
+                <h2>Print</h2>
+                <p>Open blank forms for handwritten signatures, estimate entry, or paper files.</p>
+              </div>
+            </div>
+            <div class="dashboard-card-actions print-actions">
+              <a class="button-link dashboard-primary-action" href="/print-pages">Choose Pages</a>
+              <a class="button-link dashboard-secondary-action" href="/api/template-pages.pdf?pages=3,4,5,6,7,8" target="_blank" rel="noreferrer">Blank Contract</a>
+              <a class="button-link dashboard-secondary-action" href="/api/estimate-module/blank-pdf" target="_blank" rel="noreferrer">Blank Estimate</a>
+              <a class="button-link dashboard-secondary-action" href="/api/template-pages.pdf?pages=1" target="_blank" rel="noreferrer">Customer Info</a>
+            </div>
+          </article>
+
+          <article class="dashboard-card dashboard-card-view">
+            <div class="dashboard-card-heading">
+              <div class="dashboard-card-media" data-dashboard-icon="photos" data-icon-fallback="Photos" aria-hidden="true">
+                <span>Photos</span>
+              </div>
+              <div>
+                <h2>Installer Photos</h2>
+                <p>Review uploads, assign them to customers or jobs, and archive completed photo sets.</p>
+              </div>
+            </div>
+            <div class="dashboard-card-actions">
+              <a class="button-link dashboard-primary-action" href="/installer-photos">View Uploads</a>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <section class="operations-dashboard" aria-label="Operations modules">
+        <div class="operations-dashboard-head">
+          <div>
+            <h2>Operations</h2>
+            <p>Compact access to cabinet-store records and back-office modules. Modules in gray are planned for later.</p>
+          </div>
+        </div>
+        <div class="operations-grid">
+          <a class="operations-tile operations-tile-active" href="/documents?type=receiving">
+            <span class="operations-code">RCV</span>
+            <strong>Receiving</strong>
+            <span>Scan receiving reports or review vendor/material documents.</span>
+          </a>
+          <span class="operations-tile is-disabled" aria-disabled="true">
+            <span class="operations-code">PRD</span>
+            <strong>Products</strong>
+            <span>Product codes, pricing, catalog aliases, stock flags.</span>
+          </span>
+          <span class="operations-tile is-disabled" aria-disabled="true">
+            <span class="operations-code">CUS</span>
+            <strong>Customers</strong>
+            <span>Customer records, linked estimates, contracts, invoices.</span>
+          </span>
+          <span class="operations-tile is-disabled" aria-disabled="true">
+            <span class="operations-code">INS</span>
+            <strong>Installers</strong>
+            <span>Installer records, checklist status, job links.</span>
+          </span>
+          <span class="operations-tile is-disabled" aria-disabled="true">
+            <span class="operations-code">SUP</span>
+            <strong>Material Suppliers</strong>
+            <span>Supplier aliases, purchase docs, account notes.</span>
+          </span>
+          <span class="operations-tile is-disabled" aria-disabled="true">
+            <span class="operations-code">VEN</span>
+            <strong>Other Vendors</strong>
+            <span>Non-material vendors and future AP/job-cost links.</span>
+          </span>
+        </div>
+      </section>
+
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/dashboard.js"></script>
+  </body>
+</html>

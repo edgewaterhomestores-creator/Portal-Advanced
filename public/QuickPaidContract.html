@@ -1,0 +1,1397 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quick Contract PDF</title>
+  <style>
+    :root {
+      --ink: #172331;
+      --muted: #52616c;
+      --line: #c8d4dc;
+      --soft: #edf4f6;
+      --panel: #ffffff;
+      --slate: #203342;
+      --accent: #0f6d86;
+      --ok: #0e684e;
+      --bad: #a23525;
+      --quick-nav-height: 54px;
+      --workspace-gap: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e7edf1;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    .app {
+      display: grid;
+      grid-template-columns: minmax(430px, 560px) minmax(420px, 1fr);
+      gap: 12px;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: var(--workspace-gap);
+    }
+    .app.single-panel {
+      grid-template-columns: minmax(360px, 560px);
+      justify-content: center;
+    }
+    .panel, .viewer {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      box-shadow: 0 8px 22px rgba(20, 32, 44, .08);
+    }
+    .panel {
+      position: sticky;
+      top: calc(var(--quick-nav-height) + var(--workspace-gap));
+      align-self: start;
+      max-height: calc(100vh - var(--quick-nav-height) - (var(--workspace-gap) * 2));
+      overflow: auto;
+      padding: 12px;
+      scroll-padding: 14px 14px 92px;
+    }
+    .panel h1 { font-size: 20px; }
+    .panel h2 {
+      margin: 14px 0 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .subtle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .work-steps {
+      display: grid;
+      gap: 6px;
+      margin: 10px 0 12px;
+      padding: 9px;
+      border: 1px solid #9ec4cf;
+      border-left: 5px solid var(--accent);
+      border-radius: 5px;
+      background: #f4fbfd;
+      color: #243847;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+    .work-steps strong { color: var(--ink); }
+    .title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .title-row h1 { line-height: 1.1; }
+    .title-row button { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+    .status {
+      min-height: 18px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--bad); }
+    label {
+      display: grid;
+      gap: 4px;
+      color: #263847;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    input, textarea, select {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid #b9c8d1;
+      border-radius: 5px;
+      padding: 7px 8px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    input[type="file"] { padding: 6px; background: #f8fbfc; }
+    input[type="checkbox"] { width: auto; min-height: auto; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr .8fr .8fr; gap: 10px; }
+    .doc-number-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+    .field-row { margin-top: 10px; }
+    .wide { grid-column: 1 / -1; }
+    .doc-step {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 8px;
+      margin-bottom: 7px;
+      background: #f8fbfc;
+    }
+    .doc-step h3 { font-size: 13px; margin-bottom: 6px; }
+    .confirm-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 7px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+    .file-list {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 3;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      margin: 12px -12px -12px;
+      padding: 9px 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, .98);
+    }
+    button {
+      min-height: 34px;
+      border: 1px solid #9fb0bc;
+      border-radius: 5px;
+      padding: 7px 12px;
+      color: var(--slate);
+      background: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.primary {
+      border-color: var(--slate);
+      background: var(--slate);
+      color: #fff;
+    }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .hidden { display: none !important; }
+    .link-box {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 9px;
+      background: var(--soft);
+    }
+    .link-box a {
+      overflow-wrap: anywhere;
+      color: #0b5472;
+      font-weight: 700;
+    }
+    .viewer {
+      position: relative;
+      height: calc(100vh - var(--quick-nav-height) - (var(--workspace-gap) * 2));
+      min-height: 620px;
+      overflow: hidden;
+      background: #3f4449;
+    }
+    .viewer iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border: 0;
+      background: #fff;
+      display: block;
+    }
+    .live-preview {
+      height: 100%;
+      min-height: 0;
+      padding: 18px;
+      background: #3f4449;
+      overflow: auto;
+    }
+    .preview-page {
+      width: min(100%, 660px);
+      min-height: auto;
+      aspect-ratio: 8.5 / 11;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fff;
+      color: #1a2633;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, .22);
+      font-size: 11px;
+      line-height: 1.28;
+    }
+    .preview-header {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      border-bottom: 2px solid #1d2f3d;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .preview-header img {
+      max-width: 64px;
+      max-height: 44px;
+      object-fit: contain;
+    }
+    .preview-header h2 {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      font-size: 13px;
+      line-height: 1.12;
+    }
+    .preview-title {
+      grid-column: 1 / -1;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #d4dde4;
+      text-align: left;
+      font-size: 15px;
+      font-weight: 700;
+      white-space: normal;
+    }
+    .preview-section {
+      margin-top: 10px;
+      border: 1px solid #ccd6de;
+      padding: 8px;
+    }
+    .preview-section h3 {
+      margin: 0 0 6px;
+      font-size: 12px;
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 100px minmax(0, 1fr) 100px minmax(0, 1fr);
+      gap: 4px 8px;
+    }
+    .preview-grid span {
+      color: #4f5e69;
+      font-weight: 700;
+    }
+    .preview-doc-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 5px 0;
+    }
+    .preview-doc-row div {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 4px;
+      min-width: 0;
+    }
+    .preview-doc-row span {
+      color: #4f5e69;
+      font-weight: 700;
+    }
+    .preview-wide-label {
+      grid-column: 1 / 2;
+    }
+    .preview-wide-value {
+      grid-column: 2 / -1;
+    }
+    .preview-note {
+      min-height: 38px;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 1120px) {
+      .preview-grid { grid-template-columns: 100px minmax(0, 1fr); }
+    }
+    .viewer.has-pdf .live-preview { display: none; }
+    .notice-box {
+      display: grid;
+      gap: 6px;
+      margin: 10px 0;
+      padding: 9px;
+      border: 1px solid #a9c4d1;
+      border-left: 5px solid var(--accent);
+      border-radius: 5px;
+      background: #f6fbfd;
+      font-size: 12px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: start center;
+      padding: 42px 16px;
+      background: rgba(12, 24, 34, .42);
+    }
+    .modal-card {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 84px);
+      overflow: auto;
+      border: 1px solid #94adbc;
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 18px 46px rgba(0, 0, 0, .24);
+      padding: 14px;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .modal-header h2 {
+      margin: 0;
+      border: 0;
+      padding: 0;
+      font-size: 16px;
+    }
+    .exception-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 14px;
+      padding: 8px 0;
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+    }
+    .exception-row strong { font-size: 13px; }
+    .exception-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 2px 12px;
+      margin-top: 3px;
+    }
+    .exception-status {
+      color: #7a3d00;
+      font-weight: 700;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .checklist {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .check-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid #c9d7df;
+      border-radius: 5px;
+      background: #f8fbfc;
+      font-weight: 400;
+      line-height: 1.3;
+    }
+    .check-item input {
+      margin-top: 2px;
+    }
+    .signature-pad {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      touch-action: none;
+    }
+    .quick-nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(246, 250, 252, .97);
+      box-shadow: 0 4px 12px rgba(20, 32, 44, .08);
+      padding: 7px 10px;
+    }
+    .quick-nav-left,
+    .quick-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+    .quick-nav-right {
+      justify-content: flex-end;
+    }
+    .quick-nav-title {
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .quick-nav-logo {
+      width: 72px;
+      height: 38px;
+      object-fit: contain;
+      border: 1px solid #c5d4dc;
+      border-radius: 5px;
+      background: #fff;
+      padding: 3px;
+    }
+    .quick-nav a,
+    .quick-nav button {
+      min-height: 30px;
+      border: 1px solid #b9c8d1;
+      border-radius: 5px;
+      background: #fff;
+      color: var(--slate);
+      padding: 5px 9px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.2;
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .quick-nav .home-link {
+      background: #eef8f5;
+      border-color: #b9d7d0;
+    }
+    .quick-nav .exit-button {
+      border-color: #efb8ad;
+      background: #fff5f2;
+      color: #8d2d22;
+    }
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      .panel { position: static; max-height: none; }
+      .viewer { height: 70vh; min-height: 520px; }
+      .doc-number-row,
+      .preview-doc-row { grid-template-columns: 1fr; }
+      .quick-nav {
+        grid-template-columns: 1fr;
+      }
+      .quick-nav-left,
+      .quick-nav-right {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="quick-nav" aria-label="Quick contract navigation">
+    <div class="quick-nav-left">
+      <a href="/portal" aria-label="Portal home"><img class="quick-nav-logo" src="/img/logos/edgewater-original.png" alt="Edgewater Cabinet Store"></a>
+      <button type="button" id="quick-nav-back">Back</button>
+      <button type="button" id="quick-nav-forward">Forward</button>
+      <a class="home-link" id="quick-nav-home" href="/portal">Home</a>
+    </div>
+    <div class="quick-nav-title">Quick Contract</div>
+    <div class="quick-nav-right">
+      <a data-staff-nav href="/portal">Contracts Page</a>
+      <a data-staff-nav href="/contracts">View Contracts</a>
+      <a data-staff-nav href="/admin">Admin</a>
+      <button type="button" class="exit-button" id="quick-nav-exit">Exit</button>
+    </div>
+  </nav>
+  <main class="app">
+    <section class="panel" id="staff-panel">
+      <div class="title-row">
+        <h1>Quick Contract PDF</h1>
+        <button type="button" id="view-all-quick-contracts">View All</button>
+      </div>
+      <p class="subtle">Paid-before-signing fallback. This creates a PDF from the actual core Edgewater contract pages. Review the generated PDF first, then email the PDF and signing link to the customer.</p>
+      <div class="work-steps">
+        <div><strong>1.</strong> Enter the customer and order summary.</div>
+        <div><strong>2.</strong> Attach or confirm estimate, acknowledgement/order/invoice, and receipt.</div>
+        <div><strong>3.</strong> Save the PDF preview, review the PDF on the right, then email the customer.</div>
+      </div>
+
+      <h2>1. Customer And Order Summary</h2>
+      <form id="create-form">
+        <div class="grid">
+          <label>Customer name<input name="customerName" autocomplete="off" required></label>
+          <label>Email<input name="email" type="email" autocomplete="off" required></label>
+          <label>Phone<input name="phone" autocomplete="off"></label>
+          <label>Job address<input name="jobAddress" autocomplete="off"></label>
+          <label>Contract / order #<input name="contractNumber" autocomplete="off"></label>
+        </div>
+        <div class="doc-number-row">
+          <label>Estimate #<input name="estimateNumber" autocomplete="off"></label>
+          <label>Ack / invoice #<input name="invoiceNumber" autocomplete="off"></label>
+          <label>Receipt #<input name="receiptNumber" autocomplete="off"></label>
+        </div>
+        <div class="grid-3 field-row">
+          <label>Sale date<input name="saleDate" inputmode="numeric" autocomplete="off" placeholder="MM/DD/YYYY"></label>
+          <label>Payment date<input name="paymentDate" inputmode="numeric" autocomplete="off" placeholder="MM/DD/YYYY"></label>
+          <label>Payment method<select name="paymentMethod"><option value=""></option><option>Cash</option><option>Check</option><option>CC</option><option>Other</option></select></label>
+          <label>Invoice amount<input name="invoiceAmount" inputmode="decimal"></label>
+          <label>Amount paid<input name="amountPaid" inputmode="decimal"></label>
+          <label>Balance due<input name="balanceDue" inputmode="decimal" readonly></label>
+        </div>
+        <div class="grid field-row">
+          <label>Store rep<input name="storeRep" value="Jamie Edwards" autocomplete="off"></label>
+          <label>Prepared date<input name="preparedDate" inputmode="numeric" autocomplete="off" placeholder="MM/DD/YYYY"></label>
+          <label class="wide">Work / materials description<textarea name="workDescription"></textarea></label>
+          <label class="wide">Notes / exceptions<textarea name="notes"></textarea></label>
+        </div>
+
+        <h2>2. Supporting Documents</h2>
+        <div class="doc-step">
+          <h3>Estimate(s)</h3>
+          <input type="file" multiple accept="application/pdf,image/*" name="estimate">
+          <label class="confirm-line"><input type="checkbox" name="estimateMissing" value="true"> No estimate file available or sent separately</label>
+          <div class="file-list" data-file-list="estimate">No files selected.</div>
+        </div>
+        <div class="doc-step">
+          <h3>Ack / Order / Invoice</h3>
+          <input type="file" multiple accept="application/pdf,image/*" name="order">
+          <label class="confirm-line"><input type="checkbox" name="orderMissing" value="true"> No ack/order/invoice file available or sent separately</label>
+          <div class="file-list" data-file-list="order">No files selected.</div>
+        </div>
+        <div class="doc-step">
+          <h3>Receipt(s)</h3>
+          <input type="file" multiple accept="application/pdf,image/*" name="receipt">
+          <label class="confirm-line"><input type="checkbox" name="receiptMissing" value="true"> No receipt file available or sent separately</label>
+          <div class="file-list" data-file-list="receipt">No files selected.</div>
+        </div>
+
+        <p id="staff-status" class="status"></p>
+        <div class="link-box hidden" id="created-box">
+          <strong>Created</strong>
+          <a id="sign-link" href="#" target="_blank" rel="noopener"></a>
+          <a id="pdf-link" href="#" target="_blank" rel="noopener">Open generated PDF</a>
+          <span id="email-result" class="subtle"></span>
+          <button class="primary" type="button" id="email-customer-button">Email Customer PDF And Signing Link</button>
+        </div>
+        <div class="actions">
+          <button type="reset">Clear</button>
+          <button type="button" id="reload-page">Reload</button>
+          <button class="primary" type="submit">Save PDF Preview</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel hidden" id="customer-panel">
+      <h1>Review And Sign</h1>
+      <p class="subtle">Review the PDF, then sign electronically. The signed PDF is sent back to Edgewater Cabinet Store.</p>
+      <div class="notice-box">
+        <strong>Need a copy before signing?</strong>
+        <span>Choose Print / Save PDF. In the print window, choose your printer or choose Save as PDF.</span>
+        <button type="button" id="print-current-pdf">Print / Save PDF</button>
+      </div>
+      <div class="notice-box">
+        <strong>Required before signing</strong>
+        <span>The initials/signature checklist will open when you choose Sign And Send PDF.</span>
+        <span id="checklist-summary" class="subtle">Checklist not completed.</span>
+      </div>
+      <div class="grid">
+        <label>Printed name<input id="printed-name" autocomplete="off"></label>
+        <label>Initials<input id="customer-initials" maxlength="6" autocomplete="off"></label>
+      </div>
+      <label class="confirm-line"><input id="review-confirmed" type="checkbox"> I reviewed the attached PDF and agree to sign electronically.</label>
+      <div class="signature-pad"><canvas id="signature-canvas"></canvas></div>
+      <p id="customer-status" class="status"></p>
+      <div class="link-box hidden" id="signed-box">
+        <strong>Signed PDF</strong>
+        <a id="signed-pdf-link" href="#" target="_blank" rel="noopener">Open signed PDF</a>
+        <span id="signed-email-result" class="subtle"></span>
+      </div>
+      <div class="actions">
+        <button type="button" id="clear-signature">Clear Signature</button>
+        <button class="primary" type="button" id="sign-button">Sign And Send PDF</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="thank-you-panel">
+      <h1>Thank you</h1>
+      <p class="subtle">Your signed contract has been sent to Edgewater Cabinet Store. You may close this page.</p>
+      <div class="link-box hidden" id="thank-copy-box">
+        <strong>Customer copy</strong>
+        <a id="thank-signed-link" href="#" target="_blank" rel="noopener">Open signed PDF</a>
+        <button type="button" id="thank-print-pdf">Print / Save Signed PDF</button>
+        <span class="subtle">In the print window, choose your printer or choose Save as PDF.</span>
+      </div>
+    </section>
+
+    <section class="viewer">
+      <div class="live-preview" id="live-preview">
+        <div class="preview-page">
+          <div class="preview-header">
+            <img src="/img/logos/edgewater-original.png" alt="">
+            <div>
+              <h2>Edgewater Cabinet Store, LLC</h2>
+              <p>2119 S Ridgewood Ave<br>Edgewater, FL 32141</p>
+              <p>(386) 444-6800 | edgewatercabinetstore@gmail.com</p>
+            </div>
+            <div class="preview-title">Customer Contract Summary</div>
+          </div>
+          <div class="preview-section">
+            <h3>Customer / Order</h3>
+            <div class="preview-grid">
+              <span>Customer</span><strong data-preview="customerName">Waiting</strong>
+              <span>Phone</span><div data-preview="phone"></div>
+              <span class="preview-wide-label">Email</span><div class="preview-wide-value" data-preview="email"></div>
+              <span class="preview-wide-label">Job address</span><div class="preview-wide-value" data-preview="jobAddress"></div>
+              <span>Sale date</span><div data-preview="saleDate"></div>
+              <span>Payment date</span><div data-preview="paymentDate"></div>
+              <span>Contract / order #</span><div data-preview="contractNumber"></div>
+              <span>Payment method</span><div data-preview="paymentMethod"></div>
+            </div>
+            <div class="preview-doc-row">
+              <div><span>Estimate #</span><strong data-preview="estimateNumber"></strong></div>
+              <div><span>Ack / Invoice #</span><strong data-preview="invoiceNumber"></strong></div>
+              <div><span>Receipt #</span><strong data-preview="receiptNumber"></strong></div>
+            </div>
+            <div class="preview-grid">
+              <span>Invoice amount</span><div data-preview="invoiceAmount"></div>
+              <span>Amount paid</span><div data-preview="amountPaid"></div>
+              <span>Balance due</span><div data-preview="balanceDue"></div>
+              <span class="preview-wide-label">Store rep</span><div class="preview-wide-value" data-preview="storeRep"></div>
+            </div>
+          </div>
+          <div class="preview-section">
+            <h3>Work / Materials Description</h3>
+            <div class="preview-note" data-preview="workDescription"></div>
+          </div>
+          <div class="preview-section">
+            <h3>Notes / Exceptions</h3>
+            <div class="preview-note" data-preview="notes"></div>
+          </div>
+          <div class="preview-section">
+            <h3>Supporting Documents</h3>
+            <div class="preview-grid">
+              <span>Estimate(s)</span><div data-preview="estimateDocs">No files selected.</div>
+              <span>Ack / Order / Invoice</span><div data-preview="orderDocs">No files selected.</div>
+              <span>Receipt(s)</span><div data-preview="receiptDocs">No files selected.</div>
+            </div>
+          </div>
+          <p class="subtle">This live preview updates as you type. Click <strong>Save PDF Preview</strong> to generate the actual customer PDF from the contract template.</p>
+        </div>
+      </div>
+      <iframe id="pdf-frame" title="Contract PDF"></iframe>
+    </section>
+  </main>
+
+  <div class="modal-backdrop hidden" id="quick-exception-modal" role="dialog" aria-modal="true" aria-labelledby="quick-exception-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="quick-exception-title">Paid Before Signature Exceptions</h2>
+        <button type="button" id="close-exception-modal">Close</button>
+      </div>
+      <p class="subtle">These quick contracts are waiting for a customer signature or have been returned signed.</p>
+      <div id="quick-exception-list"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="quick-all-modal" role="dialog" aria-modal="true" aria-labelledby="quick-all-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="quick-all-title">All Quick Contracts</h2>
+        <button type="button" id="close-all-modal">Close</button>
+      </div>
+      <p class="subtle">Most recent quick paid-before-signing records. This list shows status only; customer signing links stay private.</p>
+      <p id="quick-all-status" class="status"></p>
+      <div id="quick-all-list"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="signing-checklist-modal" role="dialog" aria-modal="true" aria-labelledby="signing-checklist-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="signing-checklist-title">Initials And Signature Checklist</h2>
+        <button type="button" id="close-signing-checklist">Close</button>
+      </div>
+      <p class="subtle">Before signing, confirm each item below. Your typed initials will be placed on the contract initial lines and your drawn signature will be applied to the agreement signature page.</p>
+      <div class="checklist">
+        <label class="check-item"><input type="checkbox" data-sign-check="legalDisclaimers"> I reviewed the Florida Legal Disclaimers page.</label>
+        <label class="check-item"><input type="checkbox" data-sign-check="purchaseAgreement"> I reviewed Purchase Agreement pages 1, 2, and 3.</label>
+        <label class="check-item"><input type="checkbox" data-sign-check="initialsApplied"> I understand my initials will be applied to each required initial line in those contract pages.</label>
+        <label class="check-item"><input type="checkbox" data-sign-check="signatureApplied"> I understand my electronic signature and date will be applied to the Agreement Signatures page.</label>
+        <label class="check-item"><input type="checkbox" data-sign-check="supportingDocuments"> I reviewed the estimate, ack/order/invoice, receipt, or any note that those documents are being provided separately.</label>
+      </div>
+      <p id="signing-checklist-status" class="status"></p>
+      <div class="actions">
+        <button type="button" id="confirm-signing-checklist" class="primary">Checklist Complete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const qs = (selector) => document.querySelector(selector);
+    const qsa = (selector) => [...document.querySelectorAll(selector)];
+    const form = qs("#create-form");
+    const appShell = qs(".app");
+    const staffPanel = qs("#staff-panel");
+    const customerPanel = qs("#customer-panel");
+    const thankYouPanel = qs("#thank-you-panel");
+    const staffStatus = qs("#staff-status");
+    const customerStatus = qs("#customer-status");
+    const pdfFrame = qs("#pdf-frame");
+    const viewer = qs(".viewer");
+    const canvas = qs("#signature-canvas");
+    const ctx = canvas.getContext("2d");
+    const params = new URLSearchParams(window.location.search);
+    let drawing = false;
+    let hasSignature = false;
+    let currentContract = null;
+    let createdContract = null;
+    let checkedQuickExceptions = false;
+
+    function isCustomerSigningMode() {
+      return Boolean(params.get("id") || params.get("token") || params.get("thankyou") === "1");
+    }
+
+    function configureQuickNav() {
+      const customerMode = isCustomerSigningMode();
+      const homeHref = customerMode ? "/" : "/portal";
+      const home = qs("#quick-nav-home");
+      const logoLink = qs(".quick-nav-logo")?.closest("a");
+      if (home) home.href = homeHref;
+      if (logoLink) logoLink.href = homeHref;
+
+      qsa("[data-staff-nav]").forEach((item) => {
+        item.classList.toggle("hidden", customerMode);
+      });
+
+      qs("#quick-nav-back")?.addEventListener("click", () => window.history.back());
+      qs("#quick-nav-forward")?.addEventListener("click", () => window.history.forward());
+      qs("#quick-nav-exit")?.addEventListener("click", async () => {
+        const message = customerMode
+          ? "Exit this signing page and return to the portal entry page?"
+          : "Exit Quick Contract and log out of the staff portal? Unsaved changes may be lost.";
+        if (!window.confirm(message)) return;
+        if (!customerMode) {
+          await fetch("/api/logout", { method: "POST" }).catch(() => null);
+        }
+        window.location.href = "/";
+      });
+    }
+
+    function today() {
+      const now = new Date();
+      return `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
+    }
+
+    function status(target, message, kind = "") {
+      target.textContent = message || "";
+      target.className = `status ${kind}`.trim();
+    }
+
+    function resetPreviewScroll() {
+      viewer.scrollTop = 0;
+      qs("#live-preview").scrollTop = 0;
+      try {
+        pdfFrame.contentWindow?.scrollTo(0, 0);
+      } catch (_error) {}
+    }
+
+    function pdfUrlAtTop(url) {
+      const clean = String(url || "").split("#")[0];
+      if (!clean) return "";
+      const target = new URL(clean, window.location.origin);
+      target.searchParams.set("_viewReset", String(Date.now()));
+      return `${target.pathname}${target.search}#page=1&zoom=page-fit&pagemode=none`;
+    }
+
+    function showPdf(url) {
+      appShell.classList.remove("single-panel");
+      viewer.classList.remove("hidden");
+      resetPreviewScroll();
+      pdfFrame.removeAttribute("src");
+      viewer.classList.add("has-pdf");
+      requestAnimationFrame(() => {
+        pdfFrame.src = pdfUrlAtTop(url);
+      });
+    }
+
+    function clearPdfPreview() {
+      pdfFrame.removeAttribute("src");
+      viewer.classList.remove("has-pdf");
+      resetPreviewScroll();
+    }
+
+    function clearCreatedState() {
+      createdContract = null;
+      qs("#created-box").classList.add("hidden");
+      qs("#sign-link").removeAttribute("href");
+      qs("#sign-link").textContent = "";
+      qs("#pdf-link").removeAttribute("href");
+      qs("#email-result").textContent = "";
+      status(staffStatus, "");
+      clearPdfPreview();
+    }
+
+    function initializeStaffPage() {
+      if (isCustomerSigningMode()) return;
+      appShell.classList.remove("single-panel");
+      viewer.classList.remove("hidden");
+      clearCreatedState();
+      if (!form.elements.preparedDate.value) form.elements.preparedDate.value = today();
+      if (!form.elements.saleDate.value) form.elements.saleDate.value = today();
+      if (!form.elements.paymentDate.value) form.elements.paymentDate.value = today();
+      form.elements.storeRep.value = form.elements.storeRep.value.trim() || "Jamie Edwards";
+      calculateBalanceDue();
+      updateFileLists();
+      updateLivePreview();
+      loadQuickExceptions();
+    }
+
+    function resetStaffFormState() {
+      clearCreatedState();
+      form.elements.preparedDate.value = today();
+      form.elements.saleDate.value = today();
+      form.elements.paymentDate.value = today();
+      form.elements.storeRep.value = "Jamie Edwards";
+      form.elements.balanceDue.value = "";
+      status(staffStatus, "");
+      updateFileLists();
+      calculateBalanceDue();
+      updateLivePreview();
+      staffPanel.scrollTop = 0;
+      resetPreviewScroll();
+    }
+
+    function showThankYou(signedPdfUrl = "") {
+      staffPanel.classList.add("hidden");
+      customerPanel.classList.add("hidden");
+      thankYouPanel.classList.remove("hidden");
+      clearPdfPreview();
+      viewer.classList.add("hidden");
+      appShell.classList.add("single-panel");
+      const copyBox = qs("#thank-copy-box");
+      const signedLink = qs("#thank-signed-link");
+      if (signedPdfUrl) {
+        copyBox.classList.remove("hidden");
+        signedLink.href = signedPdfUrl;
+      } else {
+        copyBox.classList.add("hidden");
+        signedLink.removeAttribute("href");
+      }
+      window.history.replaceState(null, "", "/QuickPaidContract.html?thankyou=1");
+    }
+
+    function openPrintSave(url) {
+      if (!url) {
+        status(customerStatus, "PDF is not ready yet.", "bad");
+        return;
+      }
+      const printWindow = window.open(url, "_blank", "noopener");
+      if (!printWindow) {
+        status(customerStatus, "The browser blocked the PDF window. Open the PDF link, then use Print or Save as PDF.", "bad");
+        return;
+      }
+      status(customerStatus, "Use the print icon or Ctrl+P. Choose your printer or Save as PDF.", "ok");
+      setTimeout(() => {
+        try { printWindow.print(); } catch (_error) {}
+      }, 900);
+    }
+
+    function exceptionStatusLabel(value) {
+      if (value === "signed_returned") return "Signed Returned";
+      if (value === "waiting_customer_signature") return "Waiting Signature";
+      if (value === "created_not_sent") return "Created Not Sent";
+      return value || "Pending";
+    }
+
+    function shortDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString();
+    }
+
+    function signingChecks() {
+      return qsa("[data-sign-check]");
+    }
+
+    function signingChecklistComplete() {
+      return signingChecks().every((input) => input.checked);
+    }
+
+    function signingChecklistPayload() {
+      return Object.fromEntries(signingChecks().map((input) => [input.dataset.signCheck, input.checked]));
+    }
+
+    function updateSigningChecklistSummary() {
+      const summary = qs("#checklist-summary");
+      if (signingChecklistComplete()) {
+        summary.textContent = "Checklist completed.";
+        summary.style.color = "var(--ok)";
+      } else {
+        summary.textContent = "Checklist not completed.";
+        summary.style.color = "";
+      }
+    }
+
+    function openSigningChecklist() {
+      qs("#signing-checklist-modal").classList.remove("hidden");
+      status(qs("#signing-checklist-status"), "");
+    }
+
+    function closeSigningChecklist() {
+      qs("#signing-checklist-modal").classList.add("hidden");
+      updateSigningChecklistSummary();
+    }
+
+    function renderQuickRows(records, target) {
+      target.innerHTML = "";
+      if (!records.length) {
+        const empty = document.createElement("p");
+        empty.className = "subtle";
+        empty.textContent = "No quick contracts found.";
+        target.appendChild(empty);
+        return;
+      }
+      records.forEach((record) => {
+        const row = document.createElement("div");
+        row.className = "exception-row";
+        const details = document.createElement("div");
+        const name = document.createElement("strong");
+        const doc = document.createElement("div");
+        const meta = document.createElement("div");
+        const state = document.createElement("div");
+
+        name.textContent = record.customerName || "Customer";
+        doc.className = "subtle";
+        doc.textContent = `${record.invoiceNumber || record.contractNumber || record.estimateNumber || "No document number"} | ${record.customerEmail || record.customerPhone || ""}`;
+        meta.className = "subtle exception-meta";
+        meta.innerHTML = `
+          <span>Created: ${shortDate(record.createdAt) || "unknown"}</span>
+          <span>Sent: ${shortDate(record.sentAt) || "not sent"}</span>
+          <span>Signed: ${shortDate(record.signedAt) || "not returned"}</span>
+          <span>ID: ${record.id || ""}</span>
+        `;
+        state.className = "exception-status";
+        state.textContent = exceptionStatusLabel(record.status);
+
+        details.append(name, doc, meta);
+        row.append(details, state);
+        target.appendChild(row);
+      });
+    }
+
+    async function loadQuickExceptions() {
+      if (checkedQuickExceptions) return;
+      checkedQuickExceptions = true;
+      try {
+        const response = await fetch("/api/quick-contracts/exceptions/pending");
+        const data = await response.json();
+        if (!response.ok || !Array.isArray(data.records) || !data.records.length) return;
+
+        renderQuickRows(data.records, qs("#quick-exception-list"));
+        qs("#quick-exception-modal").classList.remove("hidden");
+      } catch (_error) {
+        // Do not interrupt the quick contract page if this optional reminder fails.
+      }
+    }
+
+    async function openAllQuickContracts() {
+      const modal = qs("#quick-all-modal");
+      const list = qs("#quick-all-list");
+      const allStatus = qs("#quick-all-status");
+      modal.classList.remove("hidden");
+      list.innerHTML = "";
+      status(allStatus, "Loading quick contracts...", "ok");
+      try {
+        const response = await fetch("/api/quick-contracts/exceptions/all");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load quick contracts.");
+        renderQuickRows(Array.isArray(data.records) ? data.records : [], list);
+        status(allStatus, "");
+      } catch (error) {
+        status(allStatus, error.message || "Could not load quick contracts.", "bad");
+      }
+    }
+
+    function phoneFormat(value) {
+      let digits = String(value || "").replace(/\D/g, "");
+      if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+      digits = digits.slice(0, 10);
+      if (digits.length <= 3) return digits;
+      if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+
+    function dateFormat(value) {
+      const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+      if (digits.length <= 2) return digits;
+      if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    }
+
+    function dateValid(value) {
+      const match = String(value || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (!match) return false;
+      const month = Number(match[1]);
+      const day = Number(match[2]);
+      const year = Number(match[3]);
+      if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900) return false;
+      const date = new Date(year, month - 1, day);
+      return date.getMonth() === month - 1 && date.getDate() === day && date.getFullYear() === year;
+    }
+
+    function moneyNumber(value) {
+      const raw = String(value || "").replace(/[^0-9.-]/g, "");
+      if (!raw) return null;
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function currencyInput(value) {
+      let cleaned = String(value || "").replace(/[^0-9.]/g, "");
+      const firstDot = cleaned.indexOf(".");
+      if (firstDot !== -1) {
+        cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
+      }
+      const [whole, cents = ""] = cleaned.split(".");
+      return firstDot === -1 ? whole : `${whole}.${cents.slice(0, 2)}`;
+    }
+
+    function currencyBlur(input) {
+      const n = moneyNumber(input.value);
+      input.value = n === null ? "" : n.toFixed(2);
+      calculateBalanceDue();
+    }
+
+    function calculateBalanceDue() {
+      const invoice = moneyNumber(form.elements.invoiceAmount.value);
+      const paid = moneyNumber(form.elements.amountPaid.value) || 0;
+      form.elements.balanceDue.value = invoice === null ? "" : Math.max(invoice - paid, 0).toFixed(2);
+    }
+
+    function fileNames(input) {
+      return [...input.files].map(file => file.name);
+    }
+
+    function previewValue(name) {
+      return form.elements[name]?.value.trim() || "";
+    }
+
+    function previewMoney(name) {
+      const n = moneyNumber(form.elements[name]?.value);
+      return n === null ? "" : `$${n.toFixed(2)}`;
+    }
+
+    function setPreview(name, value) {
+      const node = qs(`[data-preview="${name}"]`);
+      if (node) node.textContent = value || "";
+    }
+
+    function updateLivePreview() {
+      ["customerName", "email", "phone", "jobAddress", "estimateNumber", "contractNumber", "invoiceNumber", "receiptNumber", "saleDate", "paymentDate", "paymentMethod", "storeRep", "workDescription", "notes"].forEach((name) => {
+        setPreview(name, previewValue(name));
+      });
+      setPreview("customerName", previewValue("customerName") || "Waiting");
+      setPreview("invoiceAmount", previewMoney("invoiceAmount"));
+      setPreview("amountPaid", previewMoney("amountPaid"));
+      setPreview("balanceDue", previewMoney("balanceDue"));
+      ["estimate", "order", "receipt"].forEach((name) => {
+        const files = fileNames(form.elements[name]);
+        const missing = form.elements[`${name}Missing`].checked;
+        setPreview(`${name}Docs`, files.length ? files.join(", ") : (missing ? "Not available or sent separately" : "No files selected."));
+      });
+    }
+
+    function keepFocusedFieldVisible(event) {
+      const field = event.target.closest("input, textarea, select");
+      if (!field || !staffPanel.contains(field)) return;
+      window.setTimeout(() => {
+        const panelRect = staffPanel.getBoundingClientRect();
+        const fieldRect = field.getBoundingClientRect();
+        const bottomBuffer = 92;
+        const topBuffer = 12;
+        if (fieldRect.bottom > panelRect.bottom - bottomBuffer || fieldRect.top < panelRect.top + topBuffer) {
+          field.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+        }
+      }, 0);
+    }
+
+    function updateFileLists() {
+      ["estimate", "order", "receipt"].forEach((name) => {
+        const input = form.elements[name];
+        const list = qs(`[data-file-list="${name}"]`);
+        const names = fileNames(input);
+        list.textContent = names.length ? names.join(", ") : "No files selected.";
+      });
+      updateLivePreview();
+    }
+
+    function validateCreate() {
+      if (!form.elements.customerName.value.trim()) return "Enter customer name.";
+      if (!form.elements.email.value.trim()) return "Enter customer email.";
+      for (const name of ["saleDate", "paymentDate", "preparedDate"]) {
+        if (form.elements[name].value && !dateValid(form.elements[name].value)) return "Dates must be entered as MM/DD/YYYY.";
+      }
+      for (const name of ["estimate", "order", "receipt"]) {
+        const hasFile = form.elements[name].files.length > 0;
+        const missing = form.elements[`${name}Missing`].checked;
+        if (!hasFile && !missing) return "Attach or confirm the estimate, acknowledgement/order/invoice, and receipt sections.";
+      }
+      return "";
+    }
+
+    async function createContract(event) {
+      event.preventDefault();
+      const error = validateCreate();
+      if (error) {
+        status(staffStatus, error, "bad");
+        return;
+      }
+
+      const submit = form.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      status(staffStatus, "Creating PDF preview...", "ok");
+      try {
+        ["invoiceAmount", "amountPaid"].forEach(name => currencyBlur(form.elements[name]));
+        calculateBalanceDue();
+        const body = new FormData(form);
+        for (const name of ["estimateMissing", "orderMissing", "receiptMissing"]) {
+          if (!body.has(name)) body.set(name, "false");
+        }
+        const response = await fetch("/api/quick-contracts", { method: "POST", body });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not create quick contract.");
+
+        createdContract = {
+          id: data.id,
+          token: new URL(data.signUrl).searchParams.get("token"),
+        };
+        qs("#created-box").classList.remove("hidden");
+        qs("#sign-link").href = data.signUrl;
+        qs("#sign-link").textContent = data.signUrl;
+        qs("#pdf-link").href = data.pdfUrl;
+        qs("#email-result").textContent = "PDF saved. Review it, then email the customer.";
+        showPdf(data.pdfUrl);
+        status(staffStatus, "PDF saved for review.", "ok");
+      } catch (error) {
+        status(staffStatus, error.message, "bad");
+      } finally {
+        submit.disabled = false;
+      }
+    }
+
+    async function emailCustomer() {
+      if (!createdContract?.id || !createdContract?.token) {
+        status(staffStatus, "Save the PDF preview first.", "bad");
+        return;
+      }
+      const button = qs("#email-customer-button");
+      button.disabled = true;
+      status(staffStatus, "Emailing customer PDF and signing link...", "ok");
+      try {
+        const response = await fetch(`/api/quick-contracts/${encodeURIComponent(createdContract.id)}/email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: createdContract.token }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not email customer.");
+        qs("#email-result").textContent = data.email?.sent
+          ? `Customer email sent to ${data.email.to}.`
+          : (data.email?.reason || "Customer email was not sent. Send the link and PDF manually.");
+        status(staffStatus, data.email?.sent ? "Customer email sent." : "PDF saved; email was not sent.", data.email?.sent ? "ok" : "bad");
+      } catch (error) {
+        status(staffStatus, error.message, "bad");
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width) return;
+      const old = hasSignature ? canvas.toDataURL("image/png") : null;
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(rect.width * ratio));
+      canvas.height = Math.max(1, Math.round(rect.height * ratio));
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#172331";
+      if (old) {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+        img.src = old;
+      }
+    }
+
+    function point(event) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    canvas.addEventListener("pointerdown", (event) => {
+      drawing = true;
+      hasSignature = true;
+      const p = point(event);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!drawing) return;
+      const p = point(event);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    });
+
+    function stopDrawing() {
+      drawing = false;
+    }
+
+    canvas.addEventListener("pointerup", stopDrawing);
+    canvas.addEventListener("pointercancel", stopDrawing);
+    canvas.addEventListener("pointerleave", stopDrawing);
+
+    function validateSign() {
+      if (!qs("#printed-name").value.trim()) return "Enter printed name.";
+      if (!qs("#customer-initials").value.trim()) return "Enter initials.";
+      if (!signingChecklistComplete()) return "Complete the initials and signature checklist.";
+      if (!qs("#review-confirmed").checked) return "Confirm that you reviewed the PDF and agree to sign electronically.";
+      if (!hasSignature) return "Draw the customer signature.";
+      return "";
+    }
+
+    async function signContract() {
+      if (!signingChecklistComplete()) {
+        openSigningChecklist();
+        status(customerStatus, "Complete the initials and signature checklist before signing.", "bad");
+        return;
+      }
+      const error = validateSign();
+      if (error) {
+        status(customerStatus, error, "bad");
+        return;
+      }
+      const button = qs("#sign-button");
+      button.disabled = true;
+      status(customerStatus, "Creating signed PDF and sending it to the store...", "ok");
+      try {
+        const response = await fetch(`/api/quick-contracts/${encodeURIComponent(currentContract.id)}/sign`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: params.get("token"),
+            printedName: qs("#printed-name").value.trim(),
+            initials: qs("#customer-initials").value.trim(),
+            reviewedAndAccepted: qs("#review-confirmed").checked,
+            agreementChecklist: signingChecklistPayload(),
+            signatureDataUrl: canvas.toDataURL("image/png"),
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not sign contract.");
+
+        qs("#signed-box").classList.remove("hidden");
+        qs("#signed-pdf-link").href = data.signedPdfUrl;
+        qs("#signed-email-result").textContent = data.email?.sent
+          ? "Signed PDF sent to Edgewater."
+          : (data.email?.reason || "Signed PDF was created but email was not sent.");
+        showPdf(data.signedPdfUrl);
+        status(customerStatus, "Signed PDF created.", "ok");
+        showThankYou(data.signedPdfUrl);
+      } catch (error) {
+        status(customerStatus, error.message, "bad");
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function loadCustomerContract() {
+      if (params.get("thankyou") === "1") {
+        showThankYou();
+        return;
+      }
+      const id = params.get("id");
+      const token = params.get("token");
+      if (!id || !token) return;
+      staffPanel.classList.add("hidden");
+      customerPanel.classList.remove("hidden");
+      try {
+        const response = await fetch(`/api/quick-contracts/${encodeURIComponent(id)}?token=${encodeURIComponent(token)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load contract.");
+        currentContract = data;
+        qs("#printed-name").value = data.fields.customerName || "";
+        showPdf(data.pdfUrl);
+        requestAnimationFrame(resizeCanvas);
+      } catch (error) {
+        status(customerStatus, error.message, "bad");
+      }
+    }
+
+    form.addEventListener("submit", createContract);
+    form.addEventListener("reset", () => {
+      setTimeout(() => {
+        resetStaffFormState();
+      }, 0);
+    });
+    form.addEventListener("focusin", keepFocusedFieldVisible);
+    ["estimate", "order", "receipt"].forEach(name => form.elements[name].addEventListener("change", updateFileLists));
+    form.elements.phone.addEventListener("input", () => { form.elements.phone.value = phoneFormat(form.elements.phone.value); });
+    ["saleDate", "paymentDate", "preparedDate"].forEach((name) => {
+      form.elements[name].addEventListener("input", () => { form.elements[name].value = dateFormat(form.elements[name].value); });
+      form.elements[name].addEventListener("input", updateLivePreview);
+    });
+    ["invoiceAmount", "amountPaid"].forEach((name) => {
+      form.elements[name].addEventListener("input", () => {
+        form.elements[name].value = currencyInput(form.elements[name].value);
+        calculateBalanceDue();
+        updateLivePreview();
+      });
+      form.elements[name].addEventListener("blur", () => currencyBlur(form.elements[name]));
+    });
+    [...form.elements].forEach((element) => {
+      if (element.name && !["saleDate", "paymentDate", "preparedDate", "invoiceAmount", "amountPaid"].includes(element.name)) {
+        element.addEventListener("input", updateLivePreview);
+        element.addEventListener("change", updateLivePreview);
+      }
+    });
+    qs("#sign-button").addEventListener("click", signContract);
+    qs("#email-customer-button").addEventListener("click", emailCustomer);
+    qs("#print-current-pdf").addEventListener("click", () => {
+      openPrintSave(currentContract?.pdfUrl);
+    });
+    qs("#thank-print-pdf").addEventListener("click", () => {
+      openPrintSave(qs("#thank-signed-link").href);
+    });
+    qs("#close-exception-modal").addEventListener("click", () => {
+      qs("#quick-exception-modal").classList.add("hidden");
+    });
+    qs("#view-all-quick-contracts").addEventListener("click", openAllQuickContracts);
+    qs("#close-all-modal").addEventListener("click", () => {
+      qs("#quick-all-modal").classList.add("hidden");
+    });
+    qs("#close-signing-checklist").addEventListener("click", closeSigningChecklist);
+    qs("#confirm-signing-checklist").addEventListener("click", () => {
+      if (!signingChecklistComplete()) {
+        status(qs("#signing-checklist-status"), "Check each item before continuing.", "bad");
+        return;
+      }
+      closeSigningChecklist();
+      status(customerStatus, "Checklist completed. Finish signing below.", "ok");
+    });
+    signingChecks().forEach((input) => input.addEventListener("change", updateSigningChecklistSummary));
+    qs("#reload-page").addEventListener("click", () => {
+      form.reset();
+      setTimeout(resetStaffFormState, 0);
+    });
+    pdfFrame.addEventListener("load", resetPreviewScroll);
+    qs("#clear-signature").addEventListener("click", () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasSignature = false;
+    });
+    window.addEventListener("resize", resizeCanvas);
+    configureQuickNav();
+    updateSigningChecklistSummary();
+    initializeStaffPage();
+    window.addEventListener("pageshow", initializeStaffPage);
+    loadCustomerContract();
+  </script>
+</body>
+</html>

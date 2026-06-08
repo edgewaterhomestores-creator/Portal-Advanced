@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edgewater Contract Portal</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell contract-shell">
+      <h1 class="visually-hidden">Contract Portal</h1>
+
+      <section id="result" class="result hidden" aria-live="polite"></section>
+      <section id="edit-mode-panel" class="panel hidden">
+        <div class="section-head">
+          <div>
+            <h2 id="edit-mode-title">Editing Contract</h2>
+            <p id="edit-mode-copy"></p>
+          </div>
+        </div>
+        <div class="grid">
+          <label class="wide">Change reason / edit note<input id="edit-reason" autocomplete="off" /></label>
+        </div>
+        <div id="contract-owner-panel" class="owner-transfer-panel hidden">
+          <p id="contract-owner-copy" class="notice"></p>
+          <div class="owner-transfer-row">
+            <label>Transfer draft owner
+              <select id="contract-owner-select"></select>
+            </label>
+            <button type="button" class="ghost" id="transfer-owner">Transfer ownership</button>
+          </div>
+        </div>
+        <div id="edit-history" class="history-list"></div>
+      </section>
+
+      <section id="record-lock-panel" class="panel record-lock-panel hidden" aria-live="polite"></section>
+
+      <form id="packet-form" class="portal-form" novalidate>
+        <section class="panel customer-search-panel">
+          <div class="section-head">
+            <div>
+              <h2>Create Contract</h2>
+              <p>Search existing customer records first, or add a new customer.</p>
+            </div>
+          </div>
+          <div class="customer-lookup-bar">
+            <button class="primary" type="button" id="add-new-customer">Add New</button>
+            <label>Customer Search
+              <input id="customer-record-search" type="search" autocomplete="off" placeholder="Name, phone, address, invoice, or estimate" />
+            </label>
+          </div>
+          <p id="customer-lookup-status" class="status-list"></p>
+          <div id="customer-lookup-results" class="customer-lookup-results"></div>
+          <div id="selected-customer-panel" class="selected-customer-panel hidden"></div>
+        </section>
+
+        <div class="contract-workspace">
+          <nav class="form-tabs" aria-label="Packet form sections">
+            <div class="contract-sidebar-brand">
+              <span>Edgewater</span>
+              <strong>Contract Workflow</strong>
+            </div>
+            <button type="button" class="tab-button active" data-section-tab="estimate">Estimate</button>
+            <button type="button" class="tab-button" data-section-tab="customer">Customer Info</button>
+            <button type="button" class="tab-button" data-section-tab="project">Schedule / Measure</button>
+            <button type="button" class="tab-button" data-section-tab="pages">Contract Created</button>
+            <button type="button" class="tab-button" data-section-tab="order">Contracts / Job</button>
+            <button type="button" class="tab-button" data-section-tab="payments">Split Pmts / Terms</button>
+            <button type="button" class="tab-button" data-section-tab="vendors">Vendor Payments</button>
+            <button type="button" class="tab-button" data-section-tab="materials">Materials Received</button>
+            <button type="button" class="tab-button" data-section-tab="signatures">Support / Releases</button>
+            <button type="button" class="tab-button" data-section-tab="notes">Notes</button>
+            <a class="tab-button tab-link" href="/admin">Settings</a>
+          </nav>
+
+          <div class="contract-workspace-main">
+            <div class="workflow-step-actions" aria-label="Contract step navigation">
+              <span id="draft-status" class="draft-status" aria-live="polite">Draft autosave ready</span>
+              <button type="button" class="ghost" id="workflow-clear">Clear</button>
+              <button type="button" class="ghost" id="workflow-save-draft">Save Draft</button>
+              <button type="button" class="ghost hidden" id="workflow-change-customer">Change Customer</button>
+              <button type="button" class="ghost" id="section-prev">Previous step</button>
+              <button type="button" class="primary" id="section-next">Next step</button>
+              <button type="button" class="ghost" id="section-exit">Exit contract</button>
+            </div>
+
+            <section class="panel form-section hidden" data-section="pages">
+          <div class="section-head">
+            <h2>Contract Created Pages</h2>
+            <div class="button-row">
+              <button type="button" class="ghost" id="pages-all">All later customer sections</button>
+              <button type="button" class="ghost" id="pages-agreement">Initial contract set</button>
+            </div>
+          </div>
+          <p class="notice">Initial customer signing should include the estimate when one is accepted or attached, plus the required legal/disclaimer page, purchase agreement pages, agreement signatures, and Addendum A only when split payment applies. Customer information, quick measurement, job orders, receiving/material, and vendor paperwork stay in-house. Delivery, pickup, installer agreement, acknowledgements, receipts, and customer checklist sections are added later when that workflow stage applies.</p>
+          <div id="page-options" class="page-grid"></div>
+        </section>
+
+            <section class="form-section customer-intake-section hidden" data-section="customer">
+          <div class="section-head customer-intake-titlebar">
+            <div>
+              <h2>Step 1: Customer Information Sheet</h2>
+              <p>Customer intake, contact preferences, addresses, and notes.</p>
+            </div>
+          </div>
+
+          <div class="customer-intake-layout">
+            <div class="customer-intake-main">
+              <section class="customer-intake-block">
+                <div class="customer-block-head">
+                  <div>
+                    <h3>Customer Info</h3>
+                    <p>Basic contact and communication preferences.</p>
+                  </div>
+                  <span class="step-pill">Required</span>
+                </div>
+                <div class="customer-field-grid">
+                  <label>First name<input name="customer.firstName" autocomplete="given-name" /></label>
+                  <label>Last name<input name="customer.lastName" autocomplete="family-name" required /></label>
+                  <label>Phone 1 <span class="optional-label">(phone or email required)</span><input name="customer.phone1" autocomplete="tel" /></label>
+                  <label>Phone 2<input name="customer.phone2" autocomplete="tel" /></label>
+                  <label>Email <span class="optional-label">(phone or email required)</span><input name="customer.email" type="email" autocomplete="email" /></label>
+                  <label>Heard about us<input name="customer.referral" /></label>
+                  <div class="field-group">
+                    <span class="field-label">Text messages</span>
+                    <select class="native-select-hidden" name="customer.textOptIn" aria-label="Text messages">
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                    <div class="segmented-control" data-segmented-select="customer.textOptIn">
+                      <button type="button" data-value="yes">Yes</button>
+                      <button type="button" data-value="no">No</button>
+                    </div>
+                  </div>
+                  <div class="field-group">
+                    <span class="field-label">Social media tagging</span>
+                    <select class="native-select-hidden" name="customer.socialMediaTagConsent" aria-label="Social media tagging permission">
+                      <option value="">Ask later</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                    <div class="segmented-control three-option" data-segmented-select="customer.socialMediaTagConsent">
+                      <button type="button" data-value="">Ask later</button>
+                      <button type="button" data-value="yes">Yes</button>
+                      <button type="button" data-value="no">No</button>
+                    </div>
+                  </div>
+                  <label>Social media name/profile<input name="customer.socialMediaProfile" autocomplete="off" placeholder="@name or profile URL" /></label>
+                  <label class="toggle customer-email-toggle"><input name="delivery.emailCustomerLink" type="checkbox" checked /> Email signing link</label>
+                </div>
+              </section>
+
+              <div class="address-intake-grid">
+                <section class="customer-intake-block">
+                  <div class="customer-block-head compact">
+                    <h3>Mailing Address</h3>
+                  </div>
+                  <div class="structured-address-grid">
+                    <label class="wide">Street<input name="customer.mailingStreet" autocomplete="street-address" /></label>
+                    <label>ZIP<input name="customer.mailingZip" inputmode="numeric" autocomplete="postal-code" maxlength="5" /></label>
+                    <label>City<input name="customer.mailingCity" autocomplete="address-level2" /></label>
+                    <label>State<input name="customer.mailingState" autocomplete="address-level1" maxlength="2" /></label>
+                  </div>
+                </section>
+
+                <section class="customer-intake-block">
+                  <div class="customer-block-head compact">
+                    <h3>Billing Address</h3>
+                    <label class="toggle same-billing-toggle"><input id="same-billing-address" type="checkbox" /> Same as mailing</label>
+                  </div>
+                  <div class="structured-address-grid">
+                    <label class="wide">Street<input name="customer.billingStreet" autocomplete="billing street-address" /></label>
+                    <label>ZIP<input name="customer.billingZip" inputmode="numeric" autocomplete="billing postal-code" maxlength="5" /></label>
+                    <label>City<input name="customer.billingCity" autocomplete="billing address-level2" /></label>
+                    <label>State<input name="customer.billingState" autocomplete="billing address-level1" maxlength="2" /></label>
+                  </div>
+                </section>
+              </div>
+
+              <section class="customer-intake-block">
+                <div class="customer-block-head compact">
+                  <h3>Customer Notes</h3>
+                </div>
+                <label>Notes<textarea name="customer.notes" rows="5" placeholder="Sales, estimating, scheduling, installation, or customer preference notes"></textarea></label>
+              </section>
+
+              <div class="customer-section-actions customer-section-actions-bottom">
+                <button class="ghost" type="button" id="customer-clear">Clear</button>
+                <button class="ghost" type="button" id="customer-save-draft">Save</button>
+                <button class="primary" type="button" id="customer-step-done">Done</button>
+              </div>
+            </div>
+
+            <aside class="customer-intake-side">
+              <section class="customer-intake-block">
+                <div class="customer-block-head compact">
+                  <h3>Intake Progress</h3>
+                </div>
+                <div id="customer-progress-list" class="customer-progress-list"></div>
+              </section>
+
+              <section class="customer-intake-block">
+                <div class="customer-block-head compact">
+                  <h3>Customer Record</h3>
+                </div>
+                <div id="customer-record-summary" class="customer-record-summary">Customer summary will appear here after entry.</div>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+            <section class="panel form-section hidden" data-section="order">
+          <div class="section-head">
+            <h2>Job Site / Contract</h2>
+          </div>
+          <div class="grid">
+            <div class="wide structured-address-grid job-address-grid">
+              <label class="wide">Job site / installation street<input name="order.installStreet" autocomplete="street-address" /></label>
+              <label>ZIP<input name="order.installZip" inputmode="numeric" autocomplete="postal-code" maxlength="5" /></label>
+              <label>City<input name="order.installCity" autocomplete="address-level2" /></label>
+              <label>State<input name="order.installState" autocomplete="address-level1" maxlength="2" /></label>
+            </div>
+            <div class="wide address-copy-row">
+              <button type="button" class="ghost" id="copy-mailing-address">Copy mailing address</button>
+              <button type="button" class="ghost" id="copy-billing-address">Copy billing address</button>
+            </div>
+            <label>Invoice number<input name="order.invoiceNumber" /></label>
+            <label>Sale date<input name="order.saleDate" inputmode="numeric" placeholder="MM/DD/YYYY" /></label>
+            <label>Invoice amount<input name="order.invoiceAmount" /></label>
+            <label>Install date<input name="order.installDate" inputmode="numeric" placeholder="MM/DD/YYYY" /></label>
+            <label>Installer<input name="order.installerName" list="installer-directory-list" autocomplete="off" /></label>
+            <label>Sales rep<input name="order.salesRep" list="sales-rep-list" /></label>
+            <datalist id="installer-directory-list"></datalist>
+            <datalist id="sales-rep-list"></datalist>
+            <label>Measurement date<input name="order.measurementDate" inputmode="numeric" placeholder="MM/DD/YYYY" /></label>
+            <label>Customer accepted date<input name="order.customerAcceptedDate" inputmode="numeric" placeholder="MM/DD/YYYY" /></label>
+            <label>Store staff signature
+              <select id="store-rep-select">
+                <option value="">Manual / no staff signature</option>
+              </select>
+            </label>
+            <input type="hidden" name="order.storeRep" />
+            <input type="hidden" name="order.storeRepTitle" />
+            <label>Store rep date<input name="order.storeRepDate" inputmode="numeric" placeholder="MM/DD/YYYY" /></label>
+            <label>Store signature image, optional
+              <select name="order.storeSignatureId" id="store-signature-select">
+                <option value="">Manual signature / no digital image</option>
+              </select>
+            </label>
+            <div class="align-end">
+              <a class="button-link full-width-button" id="store-signature-setup-link" href="/admin?tab=signatures">Signature</a>
+            </div>
+            <p class="notice wide">A saved store signature image is optional. If the rep does not have one, print the document for manual signature when needed.</p>
+          </div>
+        </section>
+
+            <section class="panel form-section hidden" data-section="project">
+          <div class="section-head">
+            <div>
+              <h2>Project / Quick Measurement</h2>
+              <p>Optional. Skip this form when measurements are not needed yet, were already collected, or the contract is being created from an existing estimate.</p>
+            </div>
+          </div>
+          <div class="grid">
+            <label>Room type
+              <select name="project.roomType">
+                <option value=""></option>
+                <option value="kitchen">Kitchen</option>
+                <option value="bath">Bath</option>
+                <option value="laundry">Laundry</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label>Other room<input name="project.roomTypeOther" /></label>
+            <label>New or remodel
+              <select name="project.projectType">
+                <option value=""></option>
+                <option value="new">New</option>
+                <option value="remodel">Remodel</option>
+              </select>
+            </label>
+            <label>Desired timeline<input name="project.desiredTimeline" /></label>
+            <label>Total wall length<input name="project.totalWallLength" /></label>
+            <label>Ceiling height<input name="project.ceilingHeight" /></label>
+            <label>Island
+              <select name="project.hasIsland">
+                <option value=""></option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </label>
+            <label>Island size<input name="project.islandSize" /></label>
+            <label>Refrigerator width<input name="project.refrigeratorWidth" /></label>
+            <label>Range/cooktop size<input name="project.rangeCooktopSize" /></label>
+            <label>Dishwasher
+              <select name="project.dishwasher">
+                <option value=""></option>
+                <option value="standard">Standard</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label>Dishwasher other<input name="project.dishwasherOther" /></label>
+            <label>Cabinet style
+              <select name="project.cabinetStyle">
+                <option value=""></option>
+                <option value="shaker">Shaker</option>
+                <option value="slab">Slab</option>
+                <option value="traditional">Traditional</option>
+                <option value="unsure">Unsure</option>
+              </select>
+            </label>
+            <label>Finish
+              <select name="project.finish">
+                <option value=""></option>
+                <option value="white">White</option>
+                <option value="wood">Wood</option>
+                <option value="dark">Dark</option>
+                <option value="custom">Custom</option>
+                <option value="unsure">Unsure</option>
+              </select>
+            </label>
+            <label>Budget range
+              <select name="project.budgetRange">
+                <option value=""></option>
+                <option value="$">$</option>
+                <option value="$$">$$</option>
+                <option value="$$$">$$$</option>
+                <option value="$$$$">$$$$</option>
+              </select>
+            </label>
+            <label class="wide">Project notes / must-haves<textarea name="project.projectNotes" rows="3"></textarea></label>
+          </div>
+          <div class="result-actions">
+            <button type="button" id="quick-measurement-done">Quick Measurement done</button>
+            <button type="button" id="quick-measurement-skip">Skip Measurement</button>
+          </div>
+        </section>
+
+            <section class="panel form-section" data-section="estimate">
+          <div class="section-head">
+            <div>
+              <h2>Step 1: Estimate</h2>
+              <p>Start contract from accepted estimate when one is ready, or continue without an estimate and add it later.</p>
+            </div>
+          </div>
+          <div class="result-actions estimate-actions">
+            <a class="button-link" id="open-estimate-tool" href="/estimates/new?from=contract">Open Estimate Tool</a>
+          </div>
+          <div class="grid">
+            <input type="hidden" name="estimate.selectedEstimateFile" />
+            <input type="hidden" name="estimate.sourcePath" />
+            <input type="hidden" name="estimate.estimateStatus" />
+            <input type="hidden" name="estimate.acceptedFromEstimate" />
+            <div class="estimate-picker wide">
+              <div class="estimate-picker-controls">
+                <label>Saved estimate search<input id="estimate-file-search" type="search" autocomplete="off" placeholder="Customer, date, or filename" /></label>
+                <button class="ghost align-end" id="refresh-estimates" type="button">Refresh list</button>
+              </div>
+              <p id="estimate-folder-status" class="notice"></p>
+              <div id="estimate-file-list" class="estimate-file-list"></div>
+              <iframe id="estimate-preview" class="estimate-preview hidden" title="Selected estimate preview"></iframe>
+            </div>
+            <div class="estimate-attach-row wide">
+              <label>Attach estimate PDF<input id="estimate-file" type="file" accept="application/pdf,.pdf" /></label>
+              <label>Estimate web folder or URL<input name="estimate.sourceUrl" placeholder="Optional URL" /></label>
+            </div>
+            <div class="estimate-detail-row wide">
+              <div class="estimate-number-stack">
+                <label>Estimate number<input name="estimate.estimateNumber" placeholder="EST1234" /></label>
+                <label>Estimate file name<input name="estimate.fileName" placeholder="Estimate..." /></label>
+              </div>
+              <label>Estimate notes<textarea name="estimate.notes" rows="5"></textarea></label>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button type="button" id="estimate-step-done">Continue</button>
+          </div>
+        </section>
+
+            <section class="panel form-section hidden" data-section="payments">
+          <div class="section-head">
+            <div>
+              <h2>Split Payment / Contract Terms</h2>
+              <p>This section is filled out by a store rep. Customers can review/sign where needed, but they do not edit this addendum.</p>
+            </div>
+            <label class="toggle"><input name="payments.splitPaymentApproved" type="checkbox" /> Addendum A needed</label>
+          </div>
+          <label>Total invoice amount<input name="payments.totalInvoiceAmount" /></label>
+          <div class="table-wrap">
+            <table data-rows="payments">
+              <thead>
+                <tr>
+                  <th>Amount</th>
+                  <th>Due date</th>
+                  <th>Paid initials</th>
+                  <th>Paid amount/date</th>
+                </tr>
+              </thead>
+              <tbody id="payment-rows"></tbody>
+            </table>
+          </div>
+          <div class="result-actions">
+            <button type="button" id="addendum-done">Addendum A done</button>
+          </div>
+        </section>
+
+            <section class="panel form-section hidden" data-section="vendors">
+          <div class="section-head">
+            <div>
+              <h2>Vendor Payments</h2>
+              <p>Page 11 can be filled from vendor rows and, later, from attached estimate/vendor documents.</p>
+            </div>
+          </div>
+          <p class="notice">If needed, the store rep can print this form, handwrite it, then manually enter the data here. Future: scan a completed form and let the system read/fill it.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer payment</th>
+                  <th>Vendor</th>
+                  <th>Payment date</th>
+                  <th>Estimate #</th>
+                  <th>Order #</th>
+                  <th>Estimate amount</th>
+                  <th>Order date</th>
+                  <th>Expected material</th>
+                  <th>Actual delivered</th>
+                </tr>
+              </thead>
+              <tbody id="vendor-rows"></tbody>
+            </table>
+          </div>
+        </section>
+
+            <section class="panel form-section hidden" data-section="materials">
+          <div class="section-head">
+            <div>
+              <h2>Materials Received</h2>
+              <p>Condensed receiving and material details.</p>
+            </div>
+          </div>
+          <p class="notice">Future: scan receiving sheets and use them to fill materials received for the matching contract/customer.</p>
+          <div class="table-wrap condensed-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Prod code</th>
+                  <th>PO #</th>
+                  <th>Supplier</th>
+                  <th>Item</th>
+                  <th>Style/color</th>
+                  <th>Units/type</th>
+                  <th>Cost</th>
+                  <th>Total</th>
+                  <th>Freight</th>
+                </tr>
+              </thead>
+              <tbody id="material-rows"></tbody>
+            </table>
+          </div>
+        </section>
+
+            <section class="panel form-section hidden" data-section="signatures">
+          <div class="section-head">
+            <div>
+              <h2>Support Forms / Releases</h2>
+              <p>Complete these now when they apply, or later when the job reaches that step.</p>
+            </div>
+          </div>
+          <p class="notice">These are supporting forms and releases, not the main contract signature. Use only the forms that apply to this job.</p>
+          <div class="check-grid">
+            <label><input type="checkbox" name="signing.sections" value="mainAgreement" checked disabled /> Customer Material Purchase Agreement</label>
+            <label><input type="checkbox" name="signing.sections" value="materialHandling" /> Chain-of-Custody Material Handling</label>
+            <label><input type="checkbox" name="signing.sections" value="installChecklist" /> Material Delivery and Installation Checklist</label>
+            <label><input type="checkbox" name="signing.sections" value="deliverySignoff" /> Delivery Signoff Summary</label>
+            <label><input type="checkbox" name="signing.sections" value="pickupRelease" /> Customer Pickup Material Release</label>
+          </div>
+          <div class="result-actions">
+            <button type="button" id="signatures-step-done">Initial contract signatures done</button>
+          </div>
+        </section>
+
+            <section class="panel form-section hidden" data-section="notes">
+          <div class="section-head">
+            <h2>Notes</h2>
+          </div>
+          <div class="grid">
+            <label class="wide">Customer notes<textarea name="notes.companyNotes" rows="3"></textarea></label>
+            <label class="wide">Internal notes<textarea name="notes.internalNotes" rows="3"></textarea></label>
+          </div>
+        </section>
+
+            <section class="panel form-actions-panel">
+          <div class="section-head">
+            <div>
+              <h2>Finish Or Exit</h2>
+              <p>Save the contract when the packet is ready, or exit without keeping changes.</p>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button class="primary" type="submit" id="packet-submit">Generate / Save contract packet</button>
+            <button type="submit" id="packet-save-exit" data-exit-after-save="true">Save and exit</button>
+            <button type="button" class="ghost" id="packet-exit-no-save">Exit without saving</button>
+          </div>
+            </section>
+          </div>
+        </div>
+      </form>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/admin.js"></script>
+  </body>
+</html>

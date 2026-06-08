@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimate Entry</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/estimates-module/styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <main class="editor-panel">
+            <header class="app-header">
+                <div>
+                    <h1>Estimate Entry</h1>
+                    <p class="status-line" id="syncStatus">Ready.</p>
+                    <p class="created-file-line hidden" id="createdEstimateFile"></p>
+                </div>
+            </header>
+
+            <form id="estimateForm">
+                <section class="form-section sync-section" id="syncUnlockSection" hidden>
+                    <div class="section-heading">
+                        <h2>Online Sync</h2>
+                    </div>
+                    <div class="password-row">
+                        <label for="syncPassword">Password</label>
+                        <div class="password-input-group">
+                            <input type="password" id="syncPassword" autocomplete="current-password">
+                            <button type="button" id="toggleSyncPassword" class="btn btn-secondary compact-btn">Show</button>
+                            <button type="button" id="unlockSyncBtn" class="btn btn-primary compact-btn">Unlock</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <div class="section-heading">
+                        <h2>Find Estimate</h2>
+                    </div>
+                    <div class="search-grid">
+                        <div class="form-group">
+                            <label for="estimateSearch">Search customer, supplier, installer, or estimate</label>
+                            <input type="search" id="estimateSearch" autocomplete="off" placeholder="Start typing to find an estimate">
+                        </div>
+                        <div class="form-group">
+                            <label for="savedEstimateList">Saved Estimates</label>
+                            <select id="savedEstimateList">
+                                <option value="">No saved estimates</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="toolbar-actions">
+                        <button type="button" id="loadEstimateBtn" class="btn btn-secondary">Load</button>
+                        <button type="button" id="newEstimateBtn" class="btn btn-secondary">New</button>
+                        <button type="button" id="deleteEstimateBtn" class="btn btn-danger">Delete</button>
+                        <button type="button" id="manageEstimatesBtn" class="btn btn-secondary">All</button>
+                    </div>
+                </section>
+
+                <div id="businessFields" hidden aria-hidden="true">
+                    <input type="hidden" id="businessName" name="businessName" value="Edgewater Cabinet Store, LLC">
+                    <input type="hidden" id="address" name="address" value="2119 S Ridgewood Ave">
+                    <input type="hidden" id="city" name="city" value="Edgewater">
+                    <input type="hidden" id="state" name="state" value="FL">
+                    <input type="hidden" id="zip" name="zip" value="32141">
+                    <input type="hidden" id="phone" name="phone" value="(386) 444-6800">
+                    <input type="hidden" id="email" name="email" value="edgewatercabinetstore@gmail.com">
+                    <input type="hidden" id="website" name="website" value="https://cabinets.edgewaterhomestores.com">
+                    <input type="hidden" id="salesTaxRate" name="salesTaxRate" value="6.5">
+                </div>
+
+                <section class="form-section">
+                    <div class="section-heading">
+                        <h2>Estimate Details</h2>
+                    </div>
+                    <div class="form-row estimate-number-row">
+                        <div class="form-group">
+                            <label for="estimateNumber">Estimate Number</label>
+                            <input type="text" id="estimateNumber" name="estimateNumber" readonly>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="customer">Customer</label>
+                            <input type="text" id="customer" name="customer" autocomplete="name" list="customerList">
+                        </div>
+                        <div class="form-group">
+                            <label for="estimateDate">Date</label>
+                            <input type="text" id="estimateDate" name="estimateDate" inputmode="numeric" autocomplete="off" placeholder="MM/DD/YYYY">
+                        </div>
+                    </div>
+                    <div class="customer-suggestions" id="customerSuggestions" hidden></div>
+                    <div class="form-row-multi customer-address-grid">
+                        <div class="form-group">
+                            <label for="customerStreet">Street Address</label>
+                            <input type="text" id="customerStreet" name="customerStreet" autocomplete="street-address" placeholder="Install street address" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customerZip">ZIP</label>
+                            <input type="text" id="customerZip" name="customerZip" inputmode="numeric" autocomplete="postal-code" maxlength="5" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customerCity">City</label>
+                            <input type="text" id="customerCity" name="customerCity" autocomplete="address-level2" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customerState">State</label>
+                            <input type="text" id="customerState" name="customerState" autocomplete="address-level1" maxlength="2" required>
+                        </div>
+                    </div>
+                    <div class="form-row-multi customer-contact-grid">
+                        <div class="form-group">
+                            <label for="customerPhone">Customer Phone <span class="optional-label">(phone or email required)</span></label>
+                            <input type="tel" id="customerPhone" name="customerPhone" inputmode="numeric" autocomplete="tel-national" placeholder="(386) 555-0100">
+                        </div>
+                        <div class="form-group">
+                            <label for="customerEmail">Customer Email <span class="optional-label">(phone or email required)</span></label>
+                            <input type="email" id="customerEmail" name="customerEmail" autocomplete="email" placeholder="customer@email.com">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <div class="section-heading">
+                        <h2>Cabinets / Countertops</h2>
+                        <button type="button" id="addCabinetItemBtn" class="btn btn-secondary compact-btn">Add Item</button>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplier">Supplier</label>
+                            <input type="text" id="supplier" name="supplier" class="compact-field" autocomplete="off" list="supplierList">
+                        </div>
+                        <div class="form-group">
+                            <label for="styleDescription">Style / Description</label>
+                            <input type="text" id="styleDescription" name="styleDescription" class="compact-field" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div id="cabinetItems" class="line-items" aria-label="Cabinets and countertops item lines"></div>
+
+                    <div class="accounting-table">
+                        <div class="accounting-row checkbox-row">
+                            <label for="taxableAll"><input type="checkbox" id="taxableAll" name="taxableAll" checked> Apply sales tax to all items</label>
+                        </div>
+                        <div class="accounting-row subtotal-row">
+                            <label for="cabinetSubtotal">Subtotal</label>
+                            <div class="input-wrapper"><span class="currency">$</span><input type="text" id="cabinetSubtotal" readonly value="0.00"></div>
+                        </div>
+                        <div class="accounting-row">
+                            <label for="taxAmount">Sales Tax</label>
+                            <div class="input-wrapper"><span class="currency">$</span><input type="text" id="taxAmount" readonly value="0.00"></div>
+                        </div>
+                        <div class="accounting-row total-row">
+                            <label for="cabinetTotal">Cabinets / Countertops Total</label>
+                            <div class="input-wrapper"><span class="currency">$</span><input type="text" id="cabinetTotal" readonly value="0.00"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <div class="section-heading">
+                        <h2>Installation</h2>
+                        <button type="button" id="addInstallationItemBtn" class="btn btn-secondary compact-btn">Add Item</button>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="installer">Installer</label>
+                            <input type="text" id="installer" name="installer" class="compact-field" autocomplete="off" list="installerList">
+                        </div>
+                    </div>
+
+                    <div id="installationItems" class="line-items" aria-label="Installation item lines"></div>
+
+                    <div class="accounting-table">
+                        <div class="accounting-row total-row">
+                            <label for="installationTotal">Installation Total <span class="note-inline">Licensed &amp; Insured Independent Installer</span></label>
+                            <div class="input-wrapper"><span class="currency">$</span><input type="text" id="installationTotal" readonly value="0.00"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <div class="section-heading">
+                        <h2>Notes</h2>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="notes" name="notes" rows="3" placeholder="Enter any additional notes here..." autocomplete="off"></textarea>
+                    </div>
+                </section>
+
+                <div class="actions">
+                    <button type="button" id="saveEstimateBtn" class="btn btn-primary">Save Record</button>
+                    <button type="button" id="saveBackContractBtn" class="btn btn-primary hidden">Save and Back to Contract</button>
+                    <button type="button" id="downloadPrintBtn" class="btn btn-secondary">Download / Print</button>
+                    <button type="button" id="emailBtn" class="btn btn-success">Email Estimate</button>
+                    <a id="toContractsBtn" class="btn btn-secondary hidden" href="/portal">To Contracts</a>
+                </div>
+            </form>
+        </main>
+
+        <div class="shell-resizer" id="shellResizer" role="separator" aria-label="Resize estimate entry and preview" aria-orientation="vertical" tabindex="0"></div>
+
+        <aside class="preview-panel">
+            <article id="estimatePreview" class="estimate-preview" aria-label="Customer-facing estimate preview"></article>
+        </aside>
+    </div>
+
+    <div id="downloadPrintModal" class="modal">
+        <div class="modal-content">
+            <button type="button" class="close" data-modal="downloadPrint" aria-label="Close">&times;</button>
+            <h2>Download / Print Estimate</h2>
+            <p>Choose what you'd like to do with your estimate:</p>
+            <div class="modal-actions">
+                <button type="button" id="downloadEstimateBtn" class="btn btn-primary">Download</button>
+                <button type="button" id="printEstimateBtn" class="btn btn-secondary">Print</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <button type="button" class="close" data-modal="email" aria-label="Close">&times;</button>
+            <h2>Email Estimate</h2>
+            <form id="emailForm">
+                <div class="form-group">
+                    <label for="recipientEmail">Recipient Email</label>
+                    <input type="email" id="recipientEmail" name="recipientEmail" autocomplete="email" required>
+                </div>
+                <button type="submit" class="btn btn-success">Send Email</button>
+            </form>
+        </div>
+    </div>
+
+    <datalist id="customerList"></datalist>
+    <datalist id="supplierList"></datalist>
+    <datalist id="installerList"></datalist>
+    <datalist id="productList"></datalist>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/estimates-module/script.js"></script>
+</body>
+</html>

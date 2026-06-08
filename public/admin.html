@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edgewater Portal Admin Menu</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <h1 class="visually-hidden">Admin Menu</h1>
+
+      <section id="settings-result" class="result hidden" aria-live="polite"></section>
+
+      <div class="settings-tabs" role="tablist" aria-label="Admin settings sections">
+        <button class="settings-tab active" type="button" data-settings-tab="business">Business</button>
+        <button class="settings-tab" type="button" data-settings-tab="users">Users</button>
+        <button class="settings-tab" type="button" data-settings-tab="security">Security</button>
+        <button class="settings-tab" type="button" data-settings-tab="signatures">Signatures</button>
+        <button class="settings-tab" type="button" data-settings-tab="products">Products</button>
+        <button class="settings-tab" type="button" data-settings-tab="email-imports">Email Imports</button>
+        <button class="settings-tab" type="button" data-settings-tab="preimport">Preimport</button>
+      </div>
+
+      <section class="panel settings-panel" id="business" data-settings-panel="business">
+        <div class="section-head">
+          <h2>Business Details</h2>
+        </div>
+        <form id="business-form" class="settings-business-form">
+          <div class="business-main-fields">
+            <label>Business name<input name="businessName" /></label>
+            <label>Phone<input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" /></label>
+            <label>Email<input name="email" type="email" /></label>
+            <label>Website<input name="website" /></label>
+          </div>
+          <div class="business-logo-address">
+            <div class="logo-upload-card">
+              <label>Logo upload<input name="logoFile" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+              <div id="logo-preview-wrap" class="logo-preview-wrap">
+                <img id="logo-preview" class="logo-preview" alt="Store logo preview" />
+              </div>
+            </div>
+            <label class="address-field">Address<textarea name="address" rows="3"></textarea></label>
+          </div>
+          <div class="tax-settings-row">
+            <label>Sales tax rate<input name="salesTaxRate" type="number" min="0" max="20" step="0.0001" /></label>
+            <div class="tax-history-box">
+              <strong>Sales tax history</strong>
+              <div id="sales-tax-history" class="tax-history-list"></div>
+            </div>
+          </div>
+          <button class="primary business-save-button" type="submit">Save business settings</button>
+        </form>
+      </section>
+
+      <section class="panel settings-panel hidden" id="users" data-settings-panel="users">
+        <div class="section-head">
+          <div>
+            <h2>Staff Users</h2>
+            <p>Create staff logins, send password reset links, and disable accounts that should not access the portal.</p>
+          </div>
+        </div>
+        <form id="staff-user-form" class="staff-user-form">
+          <input name="staffId" type="hidden" />
+          <div class="staff-user-grid">
+            <label>Name<input name="name" autocomplete="off" required /></label>
+            <label>Username<input name="username" autocomplete="off" autocapitalize="none" spellcheck="false" required /></label>
+            <label>Email<input name="email" type="email" autocomplete="off" autocapitalize="none" spellcheck="false" /></label>
+            <label>Temporary password<input class="masked-entry-secret" name="password" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-secret-toggle /></label>
+            <label>Role
+              <select name="role" required>
+                <option value="superadmin">Superadmin</option>
+                <option value="owner">Owner</option>
+                <option value="salesperson">Salesperson</option>
+                <option value="sales_manager">Sales Manager</option>
+                <option value="finance">Finance</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+            <div class="staff-signature-field">
+              <label for="staff-signature-select">Saved Signature</label>
+              <div class="staff-signature-row">
+                <select name="signatureId" id="staff-signature-select">
+                  <option value="">No saved signature</option>
+                </select>
+                <button class="ghost signature-inline-action" id="staff-signature-create" type="button">Add / Replace</button>
+              </div>
+            </div>
+            <label>Signature File<input name="signatureFile" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+            <label class="toggle align-end"><input name="mustChangePassword" type="checkbox" checked /> Must change password</label>
+            <label class="toggle align-end"><input name="disabled" type="checkbox" /> Disabled</label>
+          </div>
+          <div class="staff-user-actions">
+            <button class="primary" id="staff-user-save-button" type="submit">Create User</button>
+            <button class="ghost hidden" id="staff-user-cancel-button" type="button">Cancel Edit</button>
+          </div>
+        </form>
+        <div id="staff-user-list" class="staff-user-list"></div>
+      </section>
+
+      <section class="panel settings-panel hidden" id="security" data-settings-panel="security">
+        <div class="section-head">
+          <div>
+            <h2>Security</h2>
+            <p>Control staff login timeout behavior and stale session cleanup.</p>
+          </div>
+        </div>
+        <form id="security-form" class="settings-business-form">
+          <div class="business-main-fields">
+            <label>Staff idle timeout minutes
+              <input name="staffSessionIdleMinutes" type="number" min="1" max="480" step="1" />
+            </label>
+          </div>
+          <p class="muted-text">Default is 5 minutes. When a staff user has an old active login, they can reclaim it after entering the correct username/email and password.</p>
+          <button class="primary business-save-button" type="submit">Save security settings</button>
+        </form>
+      </section>
+
+      <section class="panel settings-panel hidden" id="signatures" data-settings-panel="signatures">
+        <div class="section-head">
+          <div>
+            <h2>Saved Signatures</h2>
+            <p>Signatures are attached to staff users. Add or replace a signature from the staff user's row.</p>
+          </div>
+        </div>
+        <div id="signature-list" class="signature-list"></div>
+      </section>
+
+      <section class="panel settings-panel hidden" id="products" data-settings-panel="products">
+        <div class="section-head">
+          <div>
+            <h2>Products</h2>
+            <p>Store-specific product records use product code, item name, item type, item description, quantity, price, and line total.</p>
+          </div>
+        </div>
+        <p class="muted-text">Import product rows from Preimport Data for now. Future flooring-store installs need a different pricing structure.</p>
+      </section>
+
+      <section class="panel settings-panel hidden" id="preimport" data-settings-panel="preimport">
+        <div class="section-head">
+          <div>
+            <h2>Preimport Data</h2>
+            <p>Import reviewed customer, supplier, and product CSV/JSON records before staff starts using the portal.</p>
+          </div>
+        </div>
+        <div class="preimport-grid">
+          <form id="preimport-form" class="preimport-form">
+            <div class="preimport-controls">
+              <label>Record type
+                <select name="kind">
+                  <option value="customers">Customers</option>
+                  <option value="suppliers">Suppliers</option>
+                  <option value="products">Products</option>
+                </select>
+              </label>
+              <label>Source name<input name="sourceName" placeholder="Jamie customer list, supplier list, etc." /></label>
+              <label>Choose CSV/JSON<input name="preimportFile" type="file" accept=".csv,.json,text/csv,application/json" /></label>
+            </div>
+            <label>CSV or JSON data<textarea name="content" rows="10" placeholder="Paste CSV or JSON here, or choose a file above."></textarea></label>
+            <div class="preimport-actions">
+              <button class="primary" id="preimport-preview-button" type="submit">Preview Import</button>
+              <button class="ghost" id="preimport-clear-button" type="button">Clear</button>
+            </div>
+          </form>
+          <aside class="preimport-summary">
+            <h3>Imported Records</h3>
+            <div id="preimport-counts" class="preimport-counts"></div>
+            <h3>Recent Imports</h3>
+            <div id="preimport-runs" class="preimport-runs"></div>
+          </aside>
+        </div>
+        <section class="preimport-documents">
+          <div class="section-head compact">
+            <div>
+              <h3>Document OCR Staging</h3>
+              <p>Upload PDFs or images, run OCR, and review suggested customer/document fields before importing or linking.</p>
+            </div>
+            <button class="ghost" id="preimport-scan-documents" type="button">Scan Incoming Folder</button>
+          </div>
+          <form id="preimport-document-form" class="preimport-document-form">
+            <label>Choose PDFs/images
+              <input name="documents" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,application/pdf,image/png,image/jpeg,image/webp,image/tiff" />
+            </label>
+            <button class="primary" type="submit">Upload for OCR</button>
+          </form>
+          <div id="preimport-documents-list" class="preimport-documents-list"></div>
+        </section>
+        <div id="preimport-preview" class="preimport-preview"></div>
+      </section>
+
+      <section class="panel settings-panel hidden" id="email-imports" data-settings-panel="email-imports">
+        <div class="section-head">
+          <div>
+            <h2>Email Import Accounts</h2>
+            <p>Scan selected Gmail labels for vendor/customer document attachments and stage them in the Document Inbox.</p>
+          </div>
+          <button class="ghost" id="gmail-scan-now" type="button">Scan Now</button>
+        </div>
+        <form id="gmail-account-form" class="gmail-account-form">
+          <input type="hidden" name="id" />
+          <div class="gmail-account-grid">
+            <label>Email account<input name="email" type="email" placeholder="vendor-docs@example.com" required /></label>
+            <label>Store / module
+              <select name="store">
+                <option value="cabinet">Cabinet</option>
+                <option value="floor">Floor</option>
+              </select>
+            </label>
+            <label>Gmail label<input name="labelName" value="Portal Import" /></label>
+            <label>Scan every
+              <select name="scanEveryMinutes">
+                <option value="60">Every hour</option>
+                <option value="180">Every 3 hours</option>
+                <option value="240">Every 4 hours</option>
+                <option value="720">Twice daily</option>
+                <option value="1440">Daily</option>
+              </select>
+            </label>
+          </div>
+          <label>Gmail search query<input name="query" value="has:attachment" /></label>
+          <label class="check-line"><input name="enabled" type="checkbox" checked /> Enabled</label>
+          <div class="preimport-actions">
+            <button class="primary" type="submit">Save Email Account</button>
+            <button class="ghost" id="gmail-account-clear" type="button">Clear</button>
+          </div>
+        </form>
+        <div id="gmail-oauth-note" class="muted-text"></div>
+        <div id="gmail-account-list" class="gmail-account-list"></div>
+      </section>
+    </main>
+
+    <div id="signature-modal" class="signature-modal hidden" role="dialog" aria-modal="true" aria-labelledby="signature-modal-title">
+      <form id="signature-form" class="signature-modal-card">
+        <div class="section-head">
+          <div>
+            <h2 id="signature-modal-title">Create Signature</h2>
+          </div>
+          <button class="ghost" id="close-signature-modal" type="button">Close</button>
+        </div>
+        <p id="signature-upload-note" class="muted-text hidden"></p>
+        <label>Signature name<input name="name" placeholder="Michelle signature" /></label>
+        <label>Typed signature<input name="typedSignatureName" placeholder="Michelle" /></label>
+        <div class="store-signature-pad">
+          <div class="signature-toolbar">
+            <strong>Draw signature</strong>
+            <button class="ghost" id="clear-store-signature" type="button">Clear</button>
+          </div>
+          <canvas id="store-signature-canvas" width="700" height="180"></canvas>
+        </div>
+        <label class="toggle signature-consent">
+          <input name="signatureConsent" type="checkbox" required />
+          This saved mark is an official staff signature for contracts.
+        </label>
+        <div class="signature-action-bar">
+          <button class="primary" id="save-signature-button" type="submit">Save Signature</button>
+          <button class="ghost" id="cancel-signature-modal" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/admin-settings.js"></script>
+  </body>
+</html>

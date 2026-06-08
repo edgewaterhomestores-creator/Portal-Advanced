@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contract Portal First Run Setup</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell setup-shell">
+      <header class="topbar setup-topbar">
+        <div>
+          <p class="eyebrow">First Run</p>
+          <h1>Contract Portal Setup</h1>
+          <p class="muted-text">Initialize the portal, create the first store admin, and save the business profile.</p>
+        </div>
+      </header>
+
+      <section id="setup-status" class="result hidden" aria-live="polite"></section>
+
+      <form id="first-run-form" class="panel setup-form" autocomplete="off">
+        <section class="setup-section">
+          <div class="section-head compact">
+            <div>
+              <h2>Business</h2>
+              <p>This controls the portal header, PDFs, estimate previews, and customer-facing documents.</p>
+            </div>
+          </div>
+          <div class="setup-grid setup-business-grid">
+            <label>Business name<input name="businessName" required /></label>
+            <label>Phone<input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" /></label>
+            <label>Email<input name="email" type="email" /></label>
+            <label>Website<input name="website" /></label>
+            <div class="setup-tax-logo-row">
+              <label class="setup-tax-field">Sales tax rate<input name="salesTaxRate" type="number" min="0" max="20" step="0.0001" value="6.5" /></label>
+              <div class="logo-upload-card setup-logo-card">
+                <label>Logo upload<input name="logoFile" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+                <div id="setup-logo-preview-wrap" class="logo-preview-wrap hidden">
+                  <img id="setup-logo-preview" class="logo-preview" alt="Store logo preview" />
+                </div>
+              </div>
+            </div>
+            <div class="setup-address-grid">
+              <label class="wide">Address<input name="addressStreet" autocomplete="street-address" /></label>
+              <label>ZIP<input name="addressZip" autocomplete="postal-code" inputmode="numeric" maxlength="5" /></label>
+              <label>City<input name="addressCity" autocomplete="address-level2" /></label>
+              <label>State<input name="addressState" autocomplete="address-level1" maxlength="2" /></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="setup-section">
+          <div class="section-head compact">
+            <div>
+              <h2>First Admin</h2>
+              <p>This user can manage settings, reps, signatures, imports, contracts, and estimates.</p>
+            </div>
+          </div>
+          <div class="setup-grid">
+            <label>Name<input name="adminName" autocomplete="off" required /></label>
+            <label>Title<input name="adminTitle" autocomplete="off" value="Store Administrator" /></label>
+            <label>Username<input name="adminUsername" autocomplete="off" autocapitalize="none" spellcheck="false" required /></label>
+            <label>Password<input class="masked-entry-secret" name="adminPassword" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-secret-toggle required /></label>
+            <label>Confirm password<input class="masked-entry-secret" name="adminConfirmPassword" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-secret-toggle required /></label>
+          </div>
+        </section>
+
+        <div class="setup-actions">
+          <button class="primary" type="submit">Finish Setup</button>
+          <a class="button-link ghost" href="/login">Back to Login</a>
+        </div>
+      </form>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/password-toggle.js"></script>
+    <script src="/js/setup.js"></script>
+  </body>
+</html>

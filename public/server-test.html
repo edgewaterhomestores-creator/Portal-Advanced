@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Customer Portal Browser Test</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f6f2ea;
+        color: #1f2a2e;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 32px 16px;
+      }
+
+      main {
+        width: min(860px, 100%);
+        margin: 0 auto;
+      }
+
+      header {
+        margin-bottom: 22px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+      }
+
+      p {
+        line-height: 1.55;
+      }
+
+      button {
+        border: 0;
+        border-radius: 6px;
+        background: #28594f;
+        color: #fff;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 700;
+        min-height: 42px;
+        padding: 0 18px;
+      }
+
+      button:hover {
+        background: #1f463e;
+      }
+
+      .panel {
+        background: #fff;
+        border: 1px solid #d8d1c4;
+        border-radius: 8px;
+        padding: 18px;
+        box-shadow: 0 14px 34px rgba(31, 42, 46, 0.1);
+      }
+
+      .checks {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .check {
+        align-items: flex-start;
+        background: #fbfaf7;
+        border: 1px solid #e1dace;
+        border-radius: 8px;
+        display: grid;
+        gap: 6px;
+        grid-template-columns: 100px 1fr;
+        padding: 12px;
+      }
+
+      .label {
+        font-weight: 700;
+      }
+
+      .status {
+        border-radius: 999px;
+        display: inline-flex;
+        justify-content: center;
+        min-height: 28px;
+        padding: 5px 10px;
+      }
+
+      .pass {
+        background: #dcefe2;
+        color: #14572a;
+      }
+
+      .warn {
+        background: #fff0c2;
+        color: #6b4b00;
+      }
+
+      .fail {
+        background: #f9d6d2;
+        color: #7a1c13;
+      }
+
+      code {
+        background: #eef4f1;
+        border-radius: 4px;
+        padding: 2px 6px;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Customer Portal Browser Test</h1>
+        <p>
+          This page tests whether the portal app is reachable through the same
+          public path customers and staff will use.
+        </p>
+      </header>
+
+      <section class="panel">
+        <button id="runChecks" type="button">Run Browser Checks</button>
+        <div class="checks" id="checks"></div>
+        <p>
+          SMTP and SQL checks are not shown in this public browser page because
+          they involve server-side settings. Run <code>npm run test:server</code>
+          from <code>/opt/apps/customerportal/app</code> on the Linux server.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      const checks = document.getElementById("checks");
+      const button = document.getElementById("runChecks");
+
+      function addCheck(status, label, detail) {
+        const row = document.createElement("div");
+        row.className = "check";
+        row.innerHTML = `
+          <span class="status ${status}">${status.toUpperCase()}</span>
+          <span>
+            <span class="label">${label}</span><br>
+            <span>${detail}</span>
+          </span>
+        `;
+        checks.appendChild(row);
+      }
+
+      async function checkFetch(label, url, expectedText) {
+        try {
+          const response = await fetch(url, { cache: "no-store" });
+          const text = await response.text();
+          if (!response.ok) {
+            addCheck("fail", label, `${url} returned HTTP ${response.status}.`);
+            return;
+          }
+
+          if (expectedText && !text.includes(expectedText)) {
+            addCheck("fail", label, `${url} answered, but not with the expected content.`);
+            return;
+          }
+
+          addCheck("pass", label, `${url} answered successfully.`);
+        } catch (error) {
+          addCheck("fail", label, `${url} failed: ${error.message}`);
+        }
+      }
+
+      async function runChecks() {
+        checks.innerHTML = "";
+        addCheck("pass", "Static page", `Loaded from ${window.location.href}`);
+
+        if (window.location.protocol === "https:") {
+          addCheck("pass", "HTTPS", "The browser is using HTTPS.");
+        } else {
+          addCheck("warn", "HTTPS", "This page is not using HTTPS yet. That is okay before certificates are installed.");
+        }
+
+        await checkFetch("API health", "/api/health", "\"ok\":true");
+        await checkFetch("Login page", "/login", "<html");
+      }
+
+      button.addEventListener("click", runChecks);
+      runChecks();
+    </script>
+  </body>
+</html>

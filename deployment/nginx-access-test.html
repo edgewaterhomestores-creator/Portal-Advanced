@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Customer Portal Nginx Test</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f6f2ea;
+        color: #1f2a2e;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+
+      main {
+        width: min(720px, calc(100% - 32px));
+        background: #ffffff;
+        border: 1px solid #d8d1c4;
+        border-radius: 8px;
+        padding: 28px;
+        box-shadow: 0 16px 42px rgba(31, 42, 46, 0.12);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 28px;
+      }
+
+      p {
+        line-height: 1.55;
+      }
+
+      code {
+        background: #eef4f1;
+        border-radius: 4px;
+        padding: 2px 6px;
+      }
+
+      .ok {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: #dcefe2;
+        color: #14572a;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="ok">Customer Portal Nginx Test OK</div>
+      <h1>The public web request reached this server.</h1>
+      <p>
+        If you can see this page from outside the Pueblo network, DNS, router
+        port forwarding, and Nginx are reaching the correct Linux server.
+      </p>
+      <p>
+        This page does not prove the Node app, SMTP, or SQL connections are
+        ready. Run <code>npm run test:server</code> from the Customer Portal
+        app folder after the project files are copied.
+      </p>
+    </main>
+  </body>
+</html>

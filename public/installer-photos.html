@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Installer Photos | Edgewater Staff</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/css/installer-photos.css" />
+  </head>
+  <body>
+    <main class="shell installer-photos-shell">
+      <header class="installer-photos-head">
+        <div>
+          <h1>Installer Photos</h1>
+          <p>Search uploads, connect them to customers or jobs, then archive or delete test uploads.</p>
+        </div>
+        <div class="document-inbox-actions">
+          <a class="button-link" href="/portal">Dashboard</a>
+          <button id="refresh-uploads" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <section id="installer-upload-status" class="document-inbox-status hidden" aria-live="polite"></section>
+
+      <section class="installer-photos-layout">
+        <section class="installer-uploads-main">
+          <form id="installer-upload-filters" class="panel installer-filter-panel">
+            <label>
+              Search uploads
+              <input name="q" autocomplete="off" placeholder="Installer, job address, upload ID, customer, file name" />
+            </label>
+            <label>
+              Status
+              <select name="status">
+                <option value="inbox">Inbox</option>
+                <option value="assigned">Assigned</option>
+                <option value="archived">Archived</option>
+                <option value="deleted">Deleted</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+            <label>
+              Installer
+              <select name="installerName" id="installer-upload-installer-filter">
+                <option value="all">All installers</option>
+              </select>
+            </label>
+            <label>
+              Store
+              <select name="storeDepartment">
+                <option value="all">All</option>
+                <option value="cabinet">Cabinet</option>
+                <option value="floor">Floor</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </label>
+          </form>
+
+          <section id="installer-upload-counts" class="installer-upload-counts" aria-live="polite"></section>
+          <section id="installer-upload-list" class="installer-upload-list" aria-live="polite"></section>
+        </section>
+
+        <aside class="panel installer-directory-panel">
+          <div class="installer-directory-head">
+            <div>
+              <h2>Installer Table</h2>
+              <p>Active installers show in the upload form dropdown.</p>
+            </div>
+            <button id="new-installer" class="secondary-action" type="button">New</button>
+          </div>
+
+          <form id="installer-form" class="installer-directory-form">
+            <input name="id" type="hidden" />
+            <label>
+              Installer name
+              <input name="name" autocomplete="off" required />
+            </label>
+            <label>
+              Store
+              <select name="storeDepartment">
+                <option value="both">Both</option>
+                <option value="cabinet">Cabinet</option>
+                <option value="floor">Floor</option>
+              </select>
+            </label>
+            <label>
+              Phone
+              <input name="phone" autocomplete="off" />
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" autocomplete="off" />
+            </label>
+            <label>
+              Notes
+              <input name="notes" autocomplete="off" />
+            </label>
+            <label class="toggle installer-active-toggle">
+              <input name="active" type="checkbox" checked />
+              Active
+            </label>
+            <button id="save-installer" type="submit">Save Installer</button>
+          </form>
+
+          <div id="installer-directory-list" class="installer-directory-list" aria-live="polite"></div>
+        </aside>
+      </section>
+    </main>
+
+    <div id="installer-photo-modal" class="installer-photo-modal hidden" role="dialog" aria-modal="true" aria-labelledby="installer-photo-title">
+      <section class="installer-photo-viewer">
+        <button id="installer-photo-close" class="installer-photo-close" type="button" aria-label="Close">x</button>
+        <div class="installer-photo-viewer-head">
+          <strong id="installer-photo-title">Installer photo</strong>
+          <span id="installer-photo-count"></span>
+        </div>
+        <div class="installer-photo-stage">
+          <button id="installer-photo-prev" class="installer-photo-nav" type="button" aria-label="Previous photo">Prev</button>
+          <img id="installer-photo-image" alt="Installer upload photo" />
+          <button id="installer-photo-next" class="installer-photo-nav" type="button" aria-label="Next photo">Next</button>
+        </div>
+        <p id="installer-photo-caption" class="installer-photo-caption"></p>
+      </section>
+    </div>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/installer-photos.js?v=20260606-1310"></script>
+  </body>
+</html>

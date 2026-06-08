@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>View Contracts</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body class="records-page">
+    <main class="records-shell">
+      <h1 class="visually-hidden">View Contract</h1>
+
+      <section class="records-toolbar" aria-label="Search contract records">
+        <form id="contract-search-form" class="records-search-form">
+          <label>
+            <span>Search Records</span>
+            <input name="q" autocomplete="off" placeholder="Name, phone, address, invoice, or record ID" />
+          </label>
+          <button class="primary" type="submit">Search</button>
+        </form>
+        <p id="contract-search-status" class="records-status"></p>
+      </section>
+
+      <section id="contract-results" class="contract-results"></section>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/contracts.js"></script>
+  </body>
+</html>

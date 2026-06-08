@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edgewater Customer Portal</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <h1 class="visually-hidden">My Customer Portal</h1>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2 id="customer-heading">Orders</h2>
+            <p id="customer-subtitle"></p>
+          </div>
+        </div>
+        <p class="notice">Coming soon: estimate tracking, invoice tracking, payment tracking, saved customer signatures, and customer account updates. For now, this portal shows available contracts, signed PDFs, and attached estimates.</p>
+        <div id="order-list" class="order-list"></div>
+      </section>
+
+      <section class="panel hidden" id="customer-registration-panel">
+        <div class="section-head">
+          <div>
+            <h2>Create Portal Login</h2>
+            <p>Use a personal email and password so future contracts open from Registered User login.</p>
+          </div>
+          <button class="primary" type="button" id="open-customer-register-modal">Create portal login</button>
+        </div>
+      </section>
+
+      <section class="panel" id="delivery-release-panel">
+        <div class="section-head">
+          <div>
+            <h2>Delivery & Material Release</h2>
+            <p>Customer material release is required at delivery or pickup when Edgewater marks it ready.</p>
+          </div>
+        </div>
+        <div id="delivery-release-list" class="order-list"></div>
+      </section>
+
+      <section class="panel customer-contact-panel">
+        <div class="section-head">
+          <h2>Contact Edgewater</h2>
+        </div>
+        <div id="customer-contact-popup" class="form-popup hidden" role="status" aria-live="polite">
+          <span id="customer-contact-popup-message"></span>
+          <button type="button" class="ghost form-popup-close" id="customer-contact-popup-close" aria-label="Close message">Close</button>
+        </div>
+        <form id="customer-contact-form" class="grid">
+          <label>Reason
+            <select name="topic">
+              <option value="newSale">Call me about a new sale</option>
+              <option value="existingConcern">I have a concern about an existing sale</option>
+            </select>
+          </label>
+          <label id="contact-order-label" class="hidden">Sale / invoice
+            <select name="packetId" id="contact-order-select"></select>
+          </label>
+          <label>Preferred contact<input name="preferredContact" placeholder="Phone or email" /></label>
+          <label>Best time
+            <select name="bestTime">
+              <option value="">Any time</option>
+              <option value="Morning">Morning</option>
+              <option value="Midday">Midday</option>
+              <option value="Afternoon">Afternoon</option>
+              <option value="Evening">Evening</option>
+              <option value="Weekday">Weekday</option>
+              <option value="Weekend">Weekend</option>
+            </select>
+          </label>
+          <label class="wide">Message<textarea name="message" rows="4" required></textarea></label>
+          <button class="primary wide" type="submit">Send message</button>
+        </form>
+        <p id="customer-contact-status" class="status-list"></p>
+      </section>
+
+      <section class="panel hidden" id="customer-account-panel">
+        <div class="section-head">
+          <div>
+            <h2>Customer Account</h2>
+            <p>Maintain the registered login used for future contract and estimate access.</p>
+          </div>
+        </div>
+        <form id="customer-profile-form" class="grid">
+          <label>Name<input name="name" autocomplete="name" /></label>
+          <label>Email<input name="email" type="email" autocomplete="email" required /></label>
+          <label>Phone last 4<input name="phoneLast4" inputmode="numeric" maxlength="4" /></label>
+          <button class="ghost wide" type="submit">Save account details</button>
+        </form>
+        <p id="customer-profile-status" class="status-list"></p>
+        <form id="customer-password-form" class="grid">
+          <label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required /></label>
+          <label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+          <button class="primary wide" type="submit">Change password</button>
+        </form>
+        <p id="customer-password-status" class="status-list"></p>
+      </section>
+
+      <div class="entry-modal hidden" id="customer-register-modal" role="dialog" aria-modal="true" aria-labelledby="customer-register-title">
+        <section class="panel entry-modal-card">
+          <div class="section-head">
+            <div>
+              <h2 id="customer-register-title">Create Portal Login</h2>
+              <p class="muted-text">Choose a personal password for future visits. After this is created, use Registered User login or your last name with this personal password.</p>
+            </div>
+            <button class="ghost form-popup-close" type="button" id="close-customer-register-modal">Close</button>
+          </div>
+          <form id="customer-register-form" class="grid account-create-grid" autocomplete="off">
+            <label>Email<input name="email" type="email" autocomplete="email" required /></label>
+            <label>New personal password<input name="personalPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <label>Confirm personal password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <div class="entry-form-actions account-create-actions wide">
+              <button class="primary" type="submit">Create portal login</button>
+            </div>
+          </form>
+          <p id="customer-register-status" class="status-list"></p>
+        </section>
+      </div>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/password-toggle.js"></script>
+    <script src="/js/public-branding.js"></script>
+    <script src="/js/customer.js"></script>
+  </body>
+</html>

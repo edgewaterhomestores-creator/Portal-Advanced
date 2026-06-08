@@ -1,0 +1,1489 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paid Contract - Edgewater Cabinet Store</title>
+    <style>
+      :root {
+        --ink: #172331;
+        --muted: #4e5d68;
+        --line: #c8d4dc;
+        --soft: #eef4f6;
+        --panel: #ffffff;
+        --slate: #203342;
+        --accent: #0d6d8b;
+        --ok: #0f6b4f;
+        --warn: #a14218;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #e6edf1;
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 13px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: minmax(370px, 470px) minmax(720px, 1fr);
+        gap: 14px;
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 14px;
+      }
+
+      .panel,
+      .print-page {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        box-shadow: 0 8px 22px rgba(20, 32, 44, 0.08);
+      }
+
+      .panel {
+        position: sticky;
+        top: 12px;
+        align-self: start;
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .panel h1 {
+        font-size: 20px;
+      }
+
+      .subtle,
+      .status {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .status.ok {
+        color: var(--ok);
+        font-weight: 700;
+      }
+
+      .status.error {
+        color: var(--warn);
+        font-weight: 700;
+      }
+
+      .panel h2 {
+        margin: 14px 0 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        color: #152535;
+        font-size: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 4px;
+        color: #273847;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid #b7c7d1;
+        border-radius: 5px;
+        padding: 7px 8px;
+        color: var(--ink);
+        font: inherit;
+        background: #fff;
+      }
+
+      textarea {
+        min-height: 72px;
+        resize: vertical;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1.15fr 0.45fr 0.7fr;
+        gap: 10px;
+      }
+
+      .wide {
+        grid-column: 1 / -1;
+      }
+
+      .toggle {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .toggle input {
+        width: auto;
+        min-height: auto;
+        margin-top: 2px;
+      }
+
+      .actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+        margin: 14px -14px -14px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.97);
+      }
+
+      button,
+      .button-link {
+        min-height: 34px;
+        border: 1px solid #9fb0bc;
+        border-radius: 5px;
+        padding: 7px 12px;
+        color: var(--slate);
+        font-weight: 700;
+        background: #fff;
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      button.primary {
+        border-color: var(--slate);
+        color: #fff;
+        background: var(--slate);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .review-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        background: rgba(15, 28, 38, 0.52);
+      }
+
+      .review-card {
+        width: min(760px, 100%);
+        max-height: calc(100vh - 36px);
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 16px;
+        background: #fff;
+        box-shadow: 0 16px 38px rgba(13, 24, 35, 0.22);
+      }
+
+      .review-card h2 {
+        margin: 0 0 8px;
+        padding: 0;
+        border: 0;
+        font-size: 17px;
+      }
+
+      .review-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 14px;
+        margin: 12px 0;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #f7fafb;
+        font-size: 12px;
+      }
+
+      .review-summary span {
+        color: var(--muted);
+      }
+
+      .attachment-checks {
+        display: grid;
+        gap: 6px;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      .attachment-checks div {
+        padding: 7px 8px;
+        border: 1px solid #d5e0e7;
+        border-radius: 5px;
+        background: #f8fbfc;
+      }
+
+      .attachment-checks .warn {
+        border-color: #e6bea8;
+        background: #fff4ef;
+        color: #733512;
+      }
+
+      .review-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .document {
+        display: grid;
+        gap: 14px;
+      }
+
+      .print-page {
+        width: 8.5in;
+        min-height: 11in;
+        margin: 0 auto;
+        padding: 0.25in;
+      }
+
+      .doc-head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: start;
+        padding-bottom: 9px;
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .brand {
+        font-weight: 800;
+        font-size: 17px;
+      }
+
+      .doc-title {
+        text-align: right;
+      }
+
+      .doc-title strong {
+        display: block;
+        font-size: 18px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .page-tag {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .notice {
+        margin: 10px 0;
+        padding: 8px 9px;
+        border-left: 4px solid var(--accent);
+        background: #e7f3f7;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .doc-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .box {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 8px;
+        min-height: 78px;
+      }
+
+      .box h3,
+      .section-title {
+        margin-bottom: 6px;
+        color: var(--accent);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: 114px 1fr;
+        gap: 4px 8px;
+        font-size: 12px;
+        line-height: 1.32;
+      }
+
+      .kv span:first-child {
+        color: var(--muted);
+      }
+
+      .terms {
+        margin-top: 8px;
+        font-size: 11.2px;
+        line-height: 1.28;
+      }
+
+      .term-row {
+        display: grid;
+        grid-template-columns: 1fr 86px;
+        gap: 12px;
+        padding: 6px 0;
+        border-bottom: 1px solid #e1e8ec;
+      }
+
+      .term-row:last-child {
+        border-bottom: 0;
+      }
+
+      .term-row h3 {
+        margin-bottom: 3px;
+        font-size: 12px;
+      }
+
+      .initial-box {
+        align-self: start;
+        color: var(--muted);
+        font-size: 10px;
+        text-align: center;
+      }
+
+      .initial-line {
+        height: 24px;
+        border-bottom: 1px solid var(--ink);
+      }
+
+      .signature-area {
+        display: grid;
+        grid-template-columns: 1.2fr 0.7fr;
+        gap: 18px;
+        margin-top: 18px;
+        font-size: 12px;
+      }
+
+      .signature-area .wide-sign {
+        grid-column: 1 / -1;
+      }
+
+      .line {
+        height: 34px;
+        border-bottom: 1px solid var(--ink);
+      }
+
+      .signature-pad {
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #fff;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 170px;
+        touch-action: none;
+      }
+
+      .signed-preview img {
+        display: block;
+        max-width: 100%;
+        max-height: 80px;
+      }
+
+      .footer-note {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 10px;
+        text-align: right;
+      }
+
+      [data-out]:empty::before {
+        content: " ";
+        white-space: pre;
+      }
+
+      @media (max-width: 1120px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .panel {
+          position: static;
+          max-height: none;
+        }
+
+        .print-page {
+          width: 100%;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .panel {
+          display: none;
+        }
+
+        .app {
+          display: block;
+          max-width: none;
+          padding: 0;
+        }
+
+        .document {
+          display: block;
+        }
+
+        .print-page {
+          width: 8in;
+          min-height: 10.5in;
+          margin: 0;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+          page-break-after: always;
+        }
+
+        .print-page:last-child {
+          page-break-after: auto;
+        }
+
+        @page {
+          size: letter;
+          margin: 0.25in;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel" id="staff-panel">
+        <h1>Paid Contract</h1>
+        <p class="subtle">Staff fills this out, attaches estimate/invoice/receipt if available, then emails the customer a signing link. Customer signs online and the signed record emails back to the store.</p>
+
+        <h2>Customer</h2>
+        <div class="grid">
+          <label>Name<input data-field="customerName" autocomplete="off" /></label>
+          <label>Phone<input data-field="phone" autocomplete="off" /></label>
+          <label class="wide">Email<input data-field="email" type="email" autocomplete="off" /></label>
+          <label class="wide">Street<input data-field="street" autocomplete="off" /></label>
+          <div class="grid-3 wide">
+            <label>ZIP<input data-field="zip" inputmode="numeric" maxlength="5" autocomplete="postal-code" /></label>
+            <label>City<input data-field="city" autocomplete="off" /></label>
+            <label>State<input data-field="state" maxlength="2" autocomplete="off" /></label>
+          </div>
+        </div>
+
+        <h2>Estimate / Invoice / Payment</h2>
+        <div class="grid">
+          <label>Estimate #<input data-field="estimateNumber" /></label>
+          <label>Contract / order #<input data-field="contractNumber" /></label>
+          <label>Invoice #<input data-field="invoiceNumber" /></label>
+          <label>Receipt #<input data-field="receiptNumber" /></label>
+          <label>Sale date<input data-field="saleDate" placeholder="MM/DD/YYYY" /></label>
+          <label>Payment date<input data-field="paymentDate" placeholder="MM/DD/YYYY" /></label>
+          <label>Invoice amount<input data-field="invoiceAmount" placeholder="0.00" /></label>
+          <label>Amount paid<input data-field="amountPaid" placeholder="0.00" /></label>
+          <label>Payment method<input data-field="paymentMethod" placeholder="Card, cash, check, ACH, etc." /></label>
+          <label>Balance due<input data-field="balanceDue" placeholder="0.00" /></label>
+        </div>
+
+        <input id="estimate-file" class="hidden" type="file" accept=".pdf,image/*" multiple />
+        <input id="invoice-file" class="hidden" type="file" accept=".pdf,image/*" multiple />
+        <input id="receipt-file" class="hidden" type="file" accept=".pdf,image/*" multiple />
+
+        <h2>Job / Order</h2>
+        <div class="grid">
+          <label class="wide">Work / materials description<textarea data-field="workDescription"></textarea></label>
+          <label class="wide">Notes / exceptions / change notes<textarea data-field="notes"></textarea></label>
+          <label>Installer status
+            <select data-field="installerStatus">
+              <option value="">Not specified</option>
+              <option>Customer self-install</option>
+              <option>Independent installer</option>
+              <option>Store collected installer payment by written agreement</option>
+              <option>Installation not included</option>
+            </select>
+          </label>
+          <label>Prepared date<input data-field="preparedDate" /></label>
+          <label>Store rep<input data-field="storeRep" value="Jamie" /></label>
+          <label>Store rep title<input data-field="storeRepTitle" value="Store Representative" /></label>
+        </div>
+
+        <p id="staff-status" class="status"></p>
+        <div class="actions">
+          <button type="button" id="clear">Clear</button>
+          <button class="primary" type="button" id="save-contract">Save / Review</button>
+          <button type="button" id="copy-link" disabled>Copy customer link</button>
+          <button type="button" id="print" disabled>Print / Save PDF</button>
+          <button class="primary" type="button" id="email-customer" disabled>Email Customer Link</button>
+        </div>
+      </section>
+
+      <section class="review-modal hidden" id="staff-review-modal" aria-modal="true" role="dialog" aria-labelledby="review-title">
+        <div class="review-card">
+          <h2 id="review-title">Review Contract Before Sending</h2>
+          <p class="subtle" id="review-message">Confirm the customer information, then step through supporting documents.</p>
+          <div class="review-summary" id="review-summary"></div>
+          <div class="attachment-checks" id="attachment-checks"></div>
+          <div class="review-actions">
+            <button type="button" id="review-back">Back to edit</button>
+            <button type="button" id="review-no">No / skip</button>
+            <button type="button" id="review-attach">Yes, attach</button>
+            <button class="primary" type="button" id="review-next">Approve and continue</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel hidden" id="customer-panel">
+        <h1>Review And Sign</h1>
+        <p class="subtle">Review the contract below. Sign with your mouse or finger, confirm you understand the contract, then email the signed contract back to Edgewater.</p>
+
+        <h2>Signature</h2>
+        <div class="grid">
+          <label>Printed name<input id="printed-name" autocomplete="off" /></label>
+          <label>Initials<input id="customer-initials" maxlength="5" autocomplete="off" /></label>
+          <label class="toggle wide"><input id="review-confirmed" type="checkbox" /> I reviewed this contract, the attached estimate/invoice/receipt documents if included, and I agree to sign electronically.</label>
+        </div>
+        <div class="signature-pad" style="margin-top: 10px;">
+          <canvas id="signature-canvas" width="900" height="260"></canvas>
+        </div>
+        <p id="customer-status" class="status"></p>
+        <div class="actions">
+          <button type="button" id="clear-signature">Clear Signature</button>
+          <button type="button" id="customer-print">Print / Save PDF</button>
+          <button class="primary" type="button" id="email-signed">Email Signed Contract</button>
+        </div>
+      </section>
+
+      <section class="document" aria-label="Printable contract">
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>2119 S Ridgewood Ave<br />Edgewater, FL 32141</div>
+              <div>(386) 444-6800 | edgewatercabinetstore@gmail.com</div>
+              <div>https://cabinets.edgewaterhomestores.com</div>
+            </div>
+            <div class="doc-title">
+              <strong>Customer Material Purchase Agreement</strong>
+              <span>Paid contract</span>
+              <div class="page-tag">Page 1 of 5</div>
+            </div>
+          </header>
+
+          <div class="notice">
+            This contract confirms the paid order listed below. The estimate, original invoice, receipt/payment record, written notes, and any attached design/order documents are incorporated into this Agreement by reference.
+          </div>
+
+          <div class="doc-grid">
+            <div class="box">
+              <h3>Customer</h3>
+              <strong data-out="customerName"></strong><br />
+              <span data-out="email"></span><br />
+              <span data-out="phone"></span><br />
+              <span data-out="street"></span><br />
+              <span data-out="cityStateZip"></span>
+            </div>
+            <div class="box">
+              <h3>Linked Records</h3>
+              <div class="kv">
+                <span>Estimate #</span><strong data-out="estimateNumber"></strong>
+                <span>Contract / order #</span><strong data-out="contractNumber"></strong>
+                <span>Invoice #</span><strong data-out="invoiceNumber"></strong>
+                <span>Receipt #</span><strong data-out="receiptNumber"></strong>
+                <span>Sale date</span><strong data-out="saleDate"></strong>
+                <span>Payment date</span><strong data-out="paymentDate"></strong>
+                <span>Invoice amount</span><strong data-out="invoiceAmount"></strong>
+                <span>Amount paid</span><strong data-out="amountPaid"></strong>
+                <span>Balance due</span><strong data-out="balanceDue"></strong>
+                <span>Method</span><strong data-out="paymentMethod"></strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="box" style="margin-top: 10px;">
+            <h3>Work / Materials Description</h3>
+            <div data-out="workDescription"></div>
+          </div>
+
+          <div class="box" style="margin-top: 10px;">
+            <h3>Notes / Exceptions</h3>
+            <div data-out="notes"></div>
+          </div>
+
+          <div class="terms">
+            <p><strong>Customer review instruction:</strong> Customer should review all pages of this contract, the estimate/invoice/receipt, and any attached design/order documents before signing.</p>
+            <p style="margin-top: 8px;"><strong>Installer status:</strong> <span data-out="installerStatus"></span></p>
+          </div>
+        </article>
+
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>Customer: <span data-out="customerName"></span></div>
+              <div>Invoice: <span data-out="invoiceNumber"></span> | Sale date: <span data-out="saleDate"></span></div>
+            </div>
+            <div class="doc-title">
+              <strong>Florida Legal Disclaimers</strong>
+              <div class="page-tag">Page 2 of 5</div>
+            </div>
+          </header>
+
+          <section class="terms">
+            <div class="term-row">
+              <div>
+                <h3>Florida law and legal responsibility</h3>
+                <p>This packet contains legal language intended to allocate responsibility for the sale, handling, transport, storage, and installation of cabinetry and related materials. The parties acknowledge that this Agreement and its exhibits are governed by the laws of the State of Florida.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>Manufacturer warranties only</h3>
+                <p>Seller limits its warranties to those provided by manufacturers. All implied warranties, including merchantability and fitness for a particular purpose, are disclaimed to the fullest extent permitted by law.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>Transfer of responsibility after release</h3>
+                <p>Once materials leave the Store premises, liability for loss, damage, shortage, or defect transfers to the party taking physical possession. Materials must be inspected and signed for at pickup or delivery.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>Legal costs and venue</h3>
+                <p>If a dispute arising from this project must be taken to court, the customer is responsible for court costs, attorney fees, and associated legal expenses to the fullest extent applicable by law. Venue is Volusia County, Florida.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+          </section>
+        </article>
+
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>Customer: <span data-out="customerName"></span></div>
+              <div>Invoice: <span data-out="invoiceNumber"></span> | Sale date: <span data-out="saleDate"></span></div>
+            </div>
+            <div class="doc-title">
+              <strong>Purchase Agreement 1</strong>
+              <div class="page-tag">Page 3 of 5</div>
+            </div>
+          </header>
+
+          <section class="terms">
+            <div class="term-row">
+              <div>
+                <h3>1. Sale and scope</h3>
+                <p>Edgewater Cabinet Store, LLC sells cabinetry and related materials to the customer according to the estimate, invoice, receipt, and order documents listed in this Agreement. The Store does not perform installation. Installation services, if any, are provided by an independent third-party installer unless expressly stated otherwise in writing.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>2. Measurements, verification, and risk</h3>
+                <p>Customer acknowledges that cabinetry, layouts, designs, and materials are ordered based on measurements provided to the Store. Measurements may be verified by the Store, verified by an approved independent installer, or provided by the Customer and not verified. Customer-provided or unverified measurements are used at the Customer's sole risk.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>Release for unverified measurements</h3>
+                <p>To the fullest extent permitted by Florida law, Customer releases the Store from claims, damages, losses, costs, fit issues, design incompatibility, labor, delay, or reorder costs arising from inaccurate or unverified measurements.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>3. Design approval, special order items, and final sales</h3>
+                <p>Once a design has been approved and materials have been ordered from the vendor, all sales are final. Changes in customer preference, mind, or design do not entitle the customer to refund, return, or exchange.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+          </section>
+        </article>
+
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>Customer: <span data-out="customerName"></span></div>
+              <div>Invoice: <span data-out="invoiceNumber"></span> | Sale date: <span data-out="saleDate"></span></div>
+            </div>
+            <div class="doc-title">
+              <strong>Purchase Agreement 2</strong>
+              <div class="page-tag">Page 4 of 5</div>
+            </div>
+          </header>
+
+          <section class="terms">
+            <div class="term-row">
+              <div>
+                <h3>4. Installer payment and installation estimate disclosure</h3>
+                <p>The independent installer is paid separately and directly by the Customer unless the invoice expressly states otherwise. Any installation amount provided by the Store is an estimate only. Installer pricing, workmanship, scheduling, payment, and disputes are between the Customer and installer.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>5. Inspection and acceptance</h3>
+                <p>The party taking possession of materials from the Store must inspect all materials before leaving the Store and sign a material release form or inspection checklist. If the Store arranges delivery, the Customer must inspect materials upon delivery and sign before the driver departs.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>6. Payment terms and release of materials</h3>
+                <p>Unless otherwise agreed in writing, full payment for materials is required in advance. No materials will be ordered, released, scheduled for delivery, or transferred until payment is received and fully cleared.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>7. Limitation of liability</h3>
+                <p>The Store's sole liability for defective materials shall not exceed the purchase price of the defective materials as stated on the invoice. The Store is not liable for labor, installation charges, delays, loss of use, or installer-related claims.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>8. Entire agreement and written changes</h3>
+                <p>This Agreement, together with the estimate, invoice, receipt/payment record, and written addenda, is the entire agreement between the parties. Any later change, additional work, balance, or exception must be documented in writing.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+          </section>
+        </article>
+
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>Customer: <span data-out="customerName"></span></div>
+              <div>Invoice: <span data-out="invoiceNumber"></span> | Sale date: <span data-out="saleDate"></span></div>
+            </div>
+            <div class="doc-title">
+              <strong>Signatures</strong>
+              <div class="page-tag">Page 5 of 5</div>
+            </div>
+          </header>
+
+          <div class="notice">
+            By signing below, Customer confirms they reviewed this Customer Material Purchase Agreement, the estimate, invoice, receipt/payment record, and any attached design/order documents. Customer agrees this signed contract applies to the paid order listed above.
+          </div>
+
+          <div class="box">
+            <h3>Payment Summary</h3>
+            <div class="kv">
+              <span>Invoice amount</span><strong data-out="invoiceAmount"></strong>
+              <span>Amount paid</span><strong data-out="amountPaid"></strong>
+              <span>Balance due</span><strong data-out="balanceDue"></strong>
+              <span>Receipt #</span><strong data-out="receiptNumber"></strong>
+              <span>Payment method</span><strong data-out="paymentMethod"></strong>
+              <span>Payment date</span><strong data-out="paymentDate"></strong>
+            </div>
+          </div>
+
+          <div class="signature-area">
+            <div>
+              <div class="line signed-preview" id="signature-output"></div>
+              Customer signature
+            </div>
+            <div>
+              <div class="line" data-out="signedDate"></div>
+              Date
+            </div>
+            <div>
+              <div class="line" data-out="printedName"></div>
+              Printed customer name
+            </div>
+            <div>
+              <div class="line" data-out="customerInitials"></div>
+              Customer initials
+            </div>
+            <div>
+              <div class="line"></div>
+              Store representative: <span data-out="storeRep"></span>
+            </div>
+            <div>
+              <div class="line"></div>
+              Date
+            </div>
+            <div class="wide-sign">
+              <div class="line"></div>
+              Store representative title: <span data-out="storeRepTitle"></span>
+            </div>
+          </div>
+
+          <p class="footer-note">Paid contract. Save signed copy with the estimate, invoice, receipt, and customer file.</p>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const fields = [...document.querySelectorAll("[data-field]")];
+      const staffPanel = document.querySelector("#staff-panel");
+      const customerPanel = document.querySelector("#customer-panel");
+      const staffStatus = document.querySelector("#staff-status");
+      const customerStatus = document.querySelector("#customer-status");
+      const staffReviewModal = document.querySelector("#staff-review-modal");
+      const reviewTitle = document.querySelector("#review-title");
+      const reviewMessage = document.querySelector("#review-message");
+      const reviewSummary = document.querySelector("#review-summary");
+      const attachmentChecks = document.querySelector("#attachment-checks");
+      const reviewBack = document.querySelector("#review-back");
+      const reviewNo = document.querySelector("#review-no");
+      const reviewAttach = document.querySelector("#review-attach");
+      const reviewNext = document.querySelector("#review-next");
+      const saveContractButton = document.querySelector("#save-contract");
+      const copyLinkButton = document.querySelector("#copy-link");
+      const printButton = document.querySelector("#print");
+      const emailCustomerButton = document.querySelector("#email-customer");
+      const canvas = document.querySelector("#signature-canvas");
+      const ctx = canvas.getContext("2d");
+      let drawing = false;
+      let hasSignature = false;
+      let readyToSend = false;
+      let reviewStage = -1;
+      let zipLookupPromise = null;
+      let zipLookupMap = null;
+
+      const zipLookupUrl = "/estimates-module/USZIPCodes202602.csv";
+
+      const attachmentSteps = [
+        {
+          key: "estimate",
+          label: "estimate(s)",
+          prompt: "Do you have estimate(s) to attach?",
+          input: document.querySelector("#estimate-file"),
+          tokens: ["estimateNumber", "customerName", "contractNumber"],
+        },
+        {
+          key: "invoice",
+          label: "acknowledgement / invoice(s)",
+          prompt: "Do you have acknowledgement / invoice(s) to attach?",
+          input: document.querySelector("#invoice-file"),
+          tokens: ["invoiceNumber", "contractNumber", "customerName"],
+        },
+        {
+          key: "receipt",
+          label: "receipt(s)",
+          prompt: "Do you have receipt(s) to attach?",
+          input: document.querySelector("#receipt-file"),
+          tokens: ["receiptNumber", "invoiceNumber", "customerName"],
+        },
+      ];
+
+      function today() {
+        const now = new Date();
+        return `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
+      }
+
+      function money(value) {
+        const raw = String(value || "").replace(/[^0-9.-]/g, "");
+        if (!raw) return "";
+        const num = Number(raw);
+        return Number.isFinite(num) ? `$ ${num.toFixed(2)}` : value;
+      }
+
+      function valueFor(name) {
+        const input = document.querySelector(`[data-field="${name}"]`);
+        return input ? input.value.trim() : "";
+      }
+
+      function setField(name, value) {
+        const input = document.querySelector(`[data-field="${name}"]`);
+        if (input) input.value = value || "";
+      }
+
+      function zipDigits(value) {
+        return String(value || "").replace(/\D/g, "").slice(0, 5);
+      }
+
+      function normalizeState(value) {
+        return String(value || "").replace(/[^a-z]/gi, "").slice(0, 2).toUpperCase();
+      }
+
+      function splitCsvLine(line) {
+        const cells = [];
+        let current = "";
+        let quoted = false;
+
+        for (let index = 0; index < line.length; index += 1) {
+          const char = line[index];
+          const next = line[index + 1];
+          if (char === '"' && quoted && next === '"') {
+            current += '"';
+            index += 1;
+          } else if (char === '"') {
+            quoted = !quoted;
+          } else if (char === "," && !quoted) {
+            cells.push(current);
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+
+        cells.push(current);
+        return cells.map((cell) => cell.trim());
+      }
+
+      function zipHeaderKey(value) {
+        return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      }
+
+      function titleCaseCity(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\b[a-z]/g, (char) => char.toUpperCase());
+      }
+
+      async function loadZipLookupMap() {
+        if (zipLookupMap) return zipLookupMap;
+        if (zipLookupPromise) return zipLookupPromise;
+
+        zipLookupPromise = fetch(zipLookupUrl)
+          .then((response) => {
+            if (!response.ok) throw new Error(`ZIP lookup unavailable: ${response.status}`);
+            return response.text();
+          })
+          .then((csv) => {
+            const lines = csv.split(/\r?\n/).filter((line) => line.trim());
+            const header = splitCsvLine(lines.shift() || "").map(zipHeaderKey);
+            const indexFor = (names, fallback) => {
+              const index = header.findIndex((key) => names.includes(key));
+              return index >= 0 ? index : fallback;
+            };
+            const zipIndex = indexFor(["zipcode", "zip", "postalcode"], 0);
+            const cityIndex = indexFor(["city", "place", "placename"], 1);
+            const stateIndex = indexFor(["state", "stateabbr", "statecode"], 3);
+            const map = new Map();
+
+            lines.forEach((line) => {
+              const cells = splitCsvLine(line);
+              const zip = zipDigits(cells[zipIndex]);
+              const city = titleCaseCity(cells[cityIndex]);
+              const state = normalizeState(cells[stateIndex]);
+              if (zip && city && state && !map.has(zip)) {
+                map.set(zip, { city, state });
+              }
+            });
+
+            zipLookupMap = map;
+            return map;
+          })
+          .catch(() => {
+            zipLookupMap = new Map();
+            return zipLookupMap;
+          });
+
+        return zipLookupPromise;
+      }
+
+      async function autofillCityStateFromZip({ overwrite = true } = {}) {
+        const zipInput = document.querySelector('[data-field="zip"]');
+        const cityInput = document.querySelector('[data-field="city"]');
+        const stateInput = document.querySelector('[data-field="state"]');
+        if (!zipInput || !cityInput || !stateInput) return;
+
+        const zip = zipDigits(zipInput.value);
+        if (zipInput.value !== zip) setField("zip", zip);
+        if (zip.length !== 5) return;
+
+        const lookup = await loadZipLookupMap();
+        const match = lookup.get(zip);
+        if (!match) return;
+
+        let changed = false;
+        if (overwrite || !cityInput.value.trim()) {
+          setField("city", match.city);
+          changed = true;
+        }
+        if (overwrite || !stateInput.value.trim()) {
+          setField("state", match.state);
+          changed = true;
+        }
+        if (changed) {
+          render();
+          markDirty();
+        }
+      }
+
+      function bindZipLookup() {
+        const input = document.querySelector('[data-field="zip"]');
+        if (!input) return;
+        input.maxLength = 5;
+        input.inputMode = "numeric";
+        input.addEventListener("input", () => {
+          input.value = zipDigits(input.value);
+          autofillCityStateFromZip({ overwrite: true });
+        });
+        input.addEventListener("blur", () => autofillCityStateFromZip({ overwrite: true }));
+      }
+
+      function formatPhone(value) {
+        const digits = String(value || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "").slice(0, 10);
+        if (digits.length <= 3) return digits;
+        if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      }
+
+      function encodePayload(data) {
+        const json = JSON.stringify(data);
+        return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      }
+
+      function decodePayload(encoded) {
+        const padded = encoded.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((encoded.length + 3) % 4);
+        return JSON.parse(decodeURIComponent(escape(atob(padded))));
+      }
+
+      function contractData() {
+        return Object.fromEntries(fields.map((field) => [field.dataset.field, field.value.trim()]));
+      }
+
+      function setReadyToSend(value, message = "") {
+        readyToSend = Boolean(value);
+        copyLinkButton.disabled = !readyToSend;
+        printButton.disabled = !readyToSend;
+        emailCustomerButton.disabled = !readyToSend;
+        if (message) status(staffStatus, message, readyToSend ? "ok" : "");
+      }
+
+      function markDirty() {
+        if (!readyToSend) return;
+        setReadyToSend(false, "Changes made after save. Save / Review again before emailing or printing.");
+      }
+
+      function validateBeforeSave() {
+        const data = contractData();
+        if (!data.customerName) return "Enter the customer name.";
+        if (!data.email) return "Enter the customer email.";
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Enter a valid customer email.";
+        if (!data.phone) return "Enter the customer phone number.";
+        if (!data.street || !data.city || !data.state || !data.zip) return "Enter the full customer address.";
+        if (!data.estimateNumber && !data.invoiceNumber && !data.receiptNumber) {
+          return "Enter at least one estimate, acknowledgement/invoice, or receipt number.";
+        }
+        return "";
+      }
+
+      function fileList(input) {
+        return [...(input?.files || [])];
+      }
+
+      function cleanToken(value) {
+        return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      }
+
+      function tokensForStep(step) {
+        const data = contractData();
+        const base = step.tokens.flatMap((field) => {
+          const value = data[field] || "";
+          if (field === "customerName") return value.split(/\s+/).filter((part) => part.length > 2);
+          return [value];
+        });
+        const phoneLast4 = cleanToken(data.phone).slice(-4);
+        return [...base, phoneLast4].map(cleanToken).filter((token) => token.length >= 3);
+      }
+
+      function renderAttachmentChecks(step) {
+        const files = fileList(step.input);
+        const tokens = tokensForStep(step);
+        attachmentChecks.innerHTML = "";
+
+        if (!files.length) {
+          attachmentChecks.innerHTML = `<div>No ${step.label} selected yet.</div>`;
+          return;
+        }
+
+        files.forEach((file) => {
+          const name = cleanToken(file.name);
+          const matched = tokens.some((token) => token && name.includes(token));
+          const row = document.createElement("div");
+          row.className = matched ? "" : "warn";
+          row.textContent = matched
+            ? `${file.name} looks like it may match the entered customer/record information.`
+            : `${file.name} does not obviously match the entered customer/record information. Open it and confirm before sending.`;
+          attachmentChecks.appendChild(row);
+        });
+      }
+
+      function renderReviewSummary() {
+        const data = contractData();
+        reviewSummary.innerHTML = [
+          ["Customer", data.customerName],
+          ["Email", data.email],
+          ["Phone", data.phone],
+          ["Address", [data.street, data.city, data.state, data.zip].filter(Boolean).join(", ")],
+          ["Estimate #", data.estimateNumber],
+          ["Acknowledgement / invoice #", data.invoiceNumber],
+          ["Receipt #", data.receiptNumber],
+          ["Amount paid", money(data.amountPaid)],
+          ["Balance due", money(data.balanceDue)],
+          ["Store rep", data.storeRep],
+        ].map(([label, value]) => `<div><span>${label}</span><br><strong>${value || " "}</strong></div>`).join("");
+      }
+
+      function showReviewStage(stage) {
+        reviewStage = stage;
+        renderReviewSummary();
+        staffReviewModal.classList.remove("hidden");
+        attachmentChecks.innerHTML = "";
+
+        if (stage === -1) {
+          reviewTitle.textContent = "Review Customer Contract Before Sending";
+          reviewMessage.textContent = "Confirm this is the final customer-facing information. The full contract preview is visible on the right.";
+          reviewNo.classList.add("hidden");
+          reviewAttach.classList.add("hidden");
+          reviewNext.classList.remove("hidden");
+          reviewNext.textContent = "Approve customer information";
+          return;
+        }
+
+        const step = attachmentSteps[stage];
+        if (step) {
+          reviewTitle.textContent = step.prompt;
+          reviewMessage.textContent = `Attach any ${step.label} Jamie has. This will be sent with the customer signing email. A quick filename check will run after selection.`;
+          reviewNo.classList.remove("hidden");
+          reviewAttach.classList.remove("hidden");
+          reviewNext.classList.remove("hidden");
+          reviewNo.textContent = `No ${step.label}`;
+          reviewAttach.textContent = `Attach ${step.label}`;
+          reviewNext.textContent = "Continue";
+          renderAttachmentChecks(step);
+          return;
+        }
+
+        reviewTitle.textContent = "Ready To Send";
+        reviewMessage.textContent = "Customer information has been approved. Email the customer link or print/save the document.";
+        reviewNo.classList.add("hidden");
+        reviewAttach.classList.add("hidden");
+        reviewNext.classList.remove("hidden");
+        reviewNext.textContent = "Close";
+        attachmentChecks.innerHTML = attachmentSteps.map((item) => {
+          const count = fileList(item.input).length;
+          return `<div>${item.label}: ${count ? `${count} attached` : "none attached"}</div>`;
+        }).join("");
+        setReadyToSend(true, "Saved and approved. Email/print buttons are unlocked.");
+      }
+
+      function customerLink() {
+        const url = new URL(window.location.href);
+        url.pathname = "/paid-contract/sign";
+        url.search = `?data=${encodeURIComponent(encodePayload(contractData()))}`;
+        return url.toString();
+      }
+
+      function render() {
+        fields.forEach((field) => {
+          const name = field.dataset.field;
+          document.querySelectorAll(`[data-out="${name}"]`).forEach((out) => {
+            out.textContent = ["amountPaid", "invoiceAmount", "balanceDue"].includes(name) ? money(field.value) : field.value.trim();
+          });
+        });
+
+        const cityStateZip = [
+          valueFor("city"),
+          [valueFor("state").toUpperCase(), valueFor("zip")].filter(Boolean).join(" "),
+        ].filter(Boolean).join(", ");
+        document.querySelectorAll('[data-out="cityStateZip"]').forEach((out) => {
+          out.textContent = cityStateZip;
+        });
+      }
+
+      function status(target, message, kind = "") {
+        target.textContent = message || "";
+        target.className = `status ${kind}`.trim();
+      }
+
+      async function emailCustomer() {
+        const data = contractData();
+        if (!data.customerName || !data.email) {
+          status(staffStatus, "Enter customer name and email before sending.", "error");
+          return;
+        }
+
+        const form = new FormData();
+        form.append("fields", JSON.stringify(data));
+        form.append("signUrl", customerLink());
+        const files = [
+          ["estimate", document.querySelector("#estimate-file")],
+          ["invoice", document.querySelector("#invoice-file")],
+          ["receipt", document.querySelector("#receipt-file")],
+        ];
+        files.forEach(([name, input]) => {
+          fileList(input).forEach((file) => form.append("documents", file, `${name}-${file.name}`));
+        });
+
+        status(staffStatus, "Sending customer email...");
+        try {
+          const response = await fetch("/api/paid-contract/email-customer", {
+            method: "POST",
+            body: form,
+          });
+          const result = await response.json();
+          if (!response.ok || !result.sent) throw new Error(result.error || result.reason || "Email was not sent.");
+          status(staffStatus, "Customer email sent.", "ok");
+        } catch (error) {
+          status(staffStatus, `${error.message} Use Copy customer link and attach the estimate/invoice/receipt manually.`, "error");
+        }
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        const data = hasSignature ? canvas.toDataURL("image/png") : null;
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#172331";
+        if (data) {
+          const image = new Image();
+          image.onload = () => ctx.drawImage(image, 0, 0, rect.width, rect.height);
+          image.src = data;
+        }
+      }
+
+      function point(event) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      }
+
+      function updateSignatureOutput() {
+        const output = document.querySelector("#signature-output");
+        output.innerHTML = "";
+        if (!hasSignature) return;
+        const img = document.createElement("img");
+        img.alt = "Customer signature";
+        img.src = canvas.toDataURL("image/png");
+        output.appendChild(img);
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        drawing = true;
+        hasSignature = true;
+        const p = point(event);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        canvas.setPointerCapture(event.pointerId);
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        if (!drawing) return;
+        const p = point(event);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        updateSignatureOutput();
+      });
+
+      function stopDrawing() {
+        drawing = false;
+        updateSignatureOutput();
+      }
+
+      canvas.addEventListener("pointerup", stopDrawing);
+      canvas.addEventListener("pointercancel", stopDrawing);
+      canvas.addEventListener("pointerleave", stopDrawing);
+
+      async function emailSigned() {
+        const printedName = document.querySelector("#printed-name").value.trim();
+        const initials = document.querySelector("#customer-initials").value.trim();
+        if (!printedName || !initials) {
+          status(customerStatus, "Enter printed name and initials.", "error");
+          return;
+        }
+        if (!document.querySelector("#review-confirmed").checked) {
+          status(customerStatus, "Confirm that you reviewed and agree to sign electronically.", "error");
+          return;
+        }
+        if (!hasSignature) {
+          status(customerStatus, "Draw your signature before emailing.", "error");
+          return;
+        }
+
+        document.querySelectorAll('[data-out="printedName"]').forEach((out) => { out.textContent = printedName; });
+        document.querySelectorAll('[data-out="customerInitials"]').forEach((out) => { out.textContent = initials; });
+        document.querySelectorAll('[data-out="signedDate"]').forEach((out) => { out.textContent = today(); });
+        updateSignatureOutput();
+
+        status(customerStatus, "Emailing signed contract...");
+        try {
+          const response = await fetch("/api/paid-contract/email-signed", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fields: contractData(),
+              printedName,
+              initials,
+              signedDate: today(),
+              reviewedAndAccepted: true,
+              signatureDataUrl: canvas.toDataURL("image/png"),
+            }),
+          });
+          const result = await response.json();
+          if (!response.ok || !result.sent) throw new Error(result.error || result.reason || "Email was not sent.");
+          status(customerStatus, "Signed contract emailed to Edgewater. Thank you.", "ok");
+        } catch (error) {
+          status(customerStatus, `${error.message} Use Print / Save PDF and email it to edgewatercabinetstore@gmail.com.`, "error");
+        }
+      }
+
+      function loadFromUrl() {
+        const encoded = new URLSearchParams(window.location.search).get("data");
+        if (!encoded) return;
+        try {
+          const data = decodePayload(encoded);
+          Object.entries(data).forEach(([key, value]) => setField(key, value));
+          staffPanel.classList.add("hidden");
+          customerPanel.classList.remove("hidden");
+          document.querySelector("#printed-name").value = data.customerName || "";
+          requestAnimationFrame(resizeCanvas);
+        } catch (_error) {
+          status(staffStatus, "Could not read customer link data.", "error");
+        }
+      }
+
+      document.querySelector('[data-field="preparedDate"]').value = today();
+      document.querySelector('[data-field="paymentDate"]').value = today();
+      document.querySelector('[data-field="saleDate"]').value = today();
+
+      bindZipLookup();
+
+      document.querySelector('[data-field="phone"]').addEventListener("input", (event) => {
+        event.target.value = formatPhone(event.target.value);
+        render();
+      });
+
+      ["amountPaid", "invoiceAmount", "balanceDue"].forEach((name) => {
+        const input = document.querySelector(`[data-field="${name}"]`);
+        input.addEventListener("blur", () => {
+          const raw = input.value.replace(/[^0-9.-]/g, "");
+          if (!raw) return;
+          const num = Number(raw);
+          if (Number.isFinite(num)) input.value = num.toFixed(2);
+          render();
+        });
+      });
+
+      fields.forEach((field) => field.addEventListener("input", () => {
+        render();
+        markDirty();
+      }));
+      fields.forEach((field) => field.addEventListener("change", () => {
+        render();
+        markDirty();
+      }));
+      attachmentSteps.forEach((step) => {
+        step.input.addEventListener("change", () => {
+          renderAttachmentChecks(step);
+          markDirty();
+        });
+      });
+      saveContractButton.addEventListener("click", () => {
+        render();
+        const error = validateBeforeSave();
+        if (error) {
+          status(staffStatus, error, "error");
+          return;
+        }
+        setReadyToSend(false);
+        showReviewStage(-1);
+      });
+      reviewBack.addEventListener("click", () => {
+        staffReviewModal.classList.add("hidden");
+        status(staffStatus, "Review canceled. Make changes, then Save / Review again.");
+      });
+      reviewNo.addEventListener("click", () => {
+        showReviewStage(reviewStage + 1);
+      });
+      reviewAttach.addEventListener("click", () => {
+        const step = attachmentSteps[reviewStage];
+        if (step) step.input.click();
+      });
+      reviewNext.addEventListener("click", () => {
+        if (reviewStage >= attachmentSteps.length) {
+          staffReviewModal.classList.add("hidden");
+          return;
+        }
+        showReviewStage(reviewStage + 1);
+      });
+      document.querySelector("#email-customer").addEventListener("click", emailCustomer);
+      document.querySelector("#email-signed").addEventListener("click", emailSigned);
+      document.querySelector("#print").addEventListener("click", () => {
+        render();
+        window.print();
+      });
+      document.querySelector("#customer-print").addEventListener("click", () => {
+        render();
+        updateSignatureOutput();
+        window.print();
+      });
+      document.querySelector("#copy-link").addEventListener("click", async () => {
+        const link = customerLink();
+        await navigator.clipboard.writeText(link);
+        status(staffStatus, "Customer link copied. Attach estimate/invoice/receipt manually if not using Email Customer Link.", "ok");
+      });
+      document.querySelector("#clear-signature").addEventListener("click", () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasSignature = false;
+        updateSignatureOutput();
+      });
+      document.querySelector("#clear").addEventListener("click", () => {
+        if (!window.confirm("Clear this paid contract form?")) return;
+        fields.forEach((field) => { field.value = ""; });
+        document.querySelector('[data-field="preparedDate"]').value = today();
+        document.querySelector('[data-field="paymentDate"]').value = today();
+        document.querySelector('[data-field="saleDate"]').value = today();
+        document.querySelector('[data-field="storeRep"]').value = "Jamie";
+        document.querySelector('[data-field="storeRepTitle"]').value = "Store Representative";
+        render();
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+      loadFromUrl();
+      render();
+    </script>
+  </body>
+</html>

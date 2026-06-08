@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Emergency Paid Contract - Edgewater Cabinet Store</title>
+    <style>
+      :root {
+        --ink: #172331;
+        --muted: #4e5d68;
+        --line: #c8d4dc;
+        --soft: #eef4f6;
+        --panel: #ffffff;
+        --slate: #203342;
+        --accent: #0d6d8b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #e6edf1;
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 13px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: minmax(370px, 470px) minmax(720px, 1fr);
+        gap: 14px;
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 14px;
+      }
+
+      .panel,
+      .print-page {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        box-shadow: 0 8px 22px rgba(20, 32, 44, 0.08);
+      }
+
+      .panel {
+        position: sticky;
+        top: 12px;
+        align-self: start;
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .panel h1 {
+        font-size: 20px;
+      }
+
+      .subtle {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .panel h2 {
+        margin: 14px 0 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        color: #152535;
+        font-size: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 4px;
+        color: #273847;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid #b7c7d1;
+        border-radius: 5px;
+        padding: 7px 8px;
+        color: var(--ink);
+        font: inherit;
+        background: #fff;
+      }
+
+      textarea {
+        min-height: 72px;
+        resize: vertical;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1.15fr 0.45fr 0.7fr;
+        gap: 10px;
+      }
+
+      .wide {
+        grid-column: 1 / -1;
+      }
+
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-weight: 700;
+      }
+
+      .toggle input {
+        width: auto;
+        min-height: auto;
+      }
+
+      .actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin: 14px -14px -14px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.97);
+      }
+
+      button {
+        min-height: 34px;
+        border: 1px solid #9fb0bc;
+        border-radius: 5px;
+        padding: 7px 12px;
+        color: var(--slate);
+        font-weight: 700;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      button.primary {
+        border-color: var(--slate);
+        color: #fff;
+        background: var(--slate);
+      }
+
+      .document {
+        display: grid;
+        gap: 14px;
+      }
+
+      .print-page {
+        width: 8.5in;
+        min-height: 11in;
+        margin: 0 auto;
+        padding: 0.25in;
+      }
+
+      .doc-head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: start;
+        padding-bottom: 9px;
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .brand {
+        font-weight: 800;
+        font-size: 17px;
+      }
+
+      .doc-title {
+        text-align: right;
+      }
+
+      .doc-title strong {
+        display: block;
+        font-size: 18px;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .page-tag {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .notice {
+        margin: 10px 0;
+        padding: 8px 9px;
+        border-left: 4px solid var(--accent);
+        background: #e7f3f7;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .doc-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .box {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 8px;
+        min-height: 78px;
+      }
+
+      .box h3,
+      .section-title {
+        margin-bottom: 6px;
+        color: var(--accent);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: 114px 1fr;
+        gap: 4px 8px;
+        font-size: 12px;
+        line-height: 1.32;
+      }
+
+      .kv span:first-child {
+        color: var(--muted);
+      }
+
+      .terms {
+        margin-top: 8px;
+        font-size: 11.2px;
+        line-height: 1.28;
+      }
+
+      .term-row {
+        display: grid;
+        grid-template-columns: 1fr 86px;
+        gap: 12px;
+        padding: 6px 0;
+        border-bottom: 1px solid #e1e8ec;
+      }
+
+      .term-row:last-child {
+        border-bottom: 0;
+      }
+
+      .term-row h3 {
+        margin-bottom: 3px;
+        font-size: 12px;
+      }
+
+      .term-row p,
+      .terms p,
+      .terms li {
+        color: #243342;
+      }
+
+      .initial-box {
+        align-self: start;
+        color: var(--muted);
+        font-size: 10px;
+        text-align: center;
+      }
+
+      .initial-line {
+        height: 24px;
+        border-bottom: 1px solid var(--ink);
+      }
+
+      .compact-list {
+        margin: 4px 0 0 16px;
+        padding: 0;
+      }
+
+      .compact-list li {
+        margin-bottom: 3px;
+      }
+
+      .signature-area {
+        display: grid;
+        grid-template-columns: 1.2fr 0.7fr;
+        gap: 18px;
+        margin-top: 18px;
+        font-size: 12px;
+      }
+
+      .signature-area .wide-sign {
+        grid-column: 1 / -1;
+      }
+
+      .line {
+        height: 34px;
+        border-bottom: 1px solid var(--ink);
+      }
+
+      .footer-note {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 10px;
+        text-align: right;
+      }
+
+      [data-out]:empty::before {
+        content: " ";
+        white-space: pre;
+      }
+
+      @media (max-width: 1120px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .panel {
+          position: static;
+          max-height: none;
+        }
+
+        .print-page {
+          width: 100%;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .panel {
+          display: none;
+        }
+
+        .app {
+          display: block;
+          max-width: none;
+          padding: 0;
+        }
+
+        .document {
+          display: block;
+        }
+
+        .print-page {
+          width: 8in;
+          min-height: 10.5in;
+          margin: 0;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+          page-break-after: always;
+        }
+
+        .print-page:last-child {
+          page-break-after: auto;
+        }
+
+        @page {
+          size: letter;
+          margin: 0.25in;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <h1>Emergency Paid Contract</h1>
+        <p class="subtle">Use when payment happened before the normal portal contract was sent. This prints a real contract packet with Edgewater terms, initials, and signatures.</p>
+
+        <h2>Customer</h2>
+        <div class="grid">
+          <label>Name<input data-field="customerName" autocomplete="off" /></label>
+          <label>Phone<input data-field="phone" autocomplete="off" /></label>
+          <label class="wide">Email<input data-field="email" autocomplete="off" /></label>
+          <label class="wide">Street<input data-field="street" autocomplete="off" /></label>
+          <div class="grid-3 wide">
+            <label>City<input data-field="city" autocomplete="off" /></label>
+            <label>State<input data-field="state" maxlength="2" autocomplete="off" /></label>
+            <label>ZIP<input data-field="zip" autocomplete="off" /></label>
+          </div>
+        </div>
+
+        <h2>Estimate / Invoice / Payment</h2>
+        <div class="grid">
+          <label>Estimate #<input data-field="estimateNumber" /></label>
+          <label>Contract / order #<input data-field="contractNumber" /></label>
+          <label>Invoice #<input data-field="invoiceNumber" /></label>
+          <label>Receipt #<input data-field="receiptNumber" /></label>
+          <label>Sale date<input data-field="saleDate" placeholder="MM/DD/YYYY" /></label>
+          <label>Payment date<input data-field="paymentDate" placeholder="MM/DD/YYYY" /></label>
+          <label>Invoice amount<input data-field="invoiceAmount" placeholder="0.00" /></label>
+          <label>Amount paid<input data-field="amountPaid" placeholder="0.00" /></label>
+          <label>Payment method<input data-field="paymentMethod" placeholder="Card, cash, check, ACH, etc." /></label>
+          <label>Balance due<input data-field="balanceDue" placeholder="0.00" /></label>
+        </div>
+
+        <h2>Job / Order</h2>
+        <div class="grid">
+          <label class="wide">Work / materials description<textarea data-field="workDescription"></textarea></label>
+          <label class="wide">Notes / exceptions / change notes<textarea data-field="notes"></textarea></label>
+          <label>Installer status
+            <select data-field="installerStatus">
+              <option value="">Not specified</option>
+              <option>Customer self-install</option>
+              <option>Independent installer</option>
+              <option>Store collected installer payment by written agreement</option>
+              <option>Installation not included</option>
+            </select>
+          </label>
+          <label>Prepared date<input data-field="preparedDate" /></label>
+          <label>Store rep<input data-field="storeRep" value="Jamie" /></label>
+          <label>Store rep title<input data-field="storeRepTitle" value="Store Representative" /></label>
+          <label class="toggle wide"><input type="checkbox" data-field="splitPaymentApplies" /> Include split payment addendum language</label>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="clear">Clear</button>
+          <button class="primary" type="button" id="print">Print / Save PDF</button>
+        </div>
+      </section>
+
+      <section class="document" aria-label="Printable contract">
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>2119 S Ridgewood Ave<br />Edgewater, FL 32141</div>
+              <div>(386) 444-6800 | edgewatercabinetstore@gmail.com</div>
+              <div>https://cabinets.edgewaterhomestores.com</div>
+            </div>
+            <div class="doc-title">
+              <strong>Customer Material Purchase Agreement</strong>
+              <span>Emergency paid-entry contract</span>
+              <div class="page-tag">Page 1 of 5</div>
+            </div>
+          </header>
+
+          <div class="notice">
+            This contract is used when payment was received before the normal electronic contract workflow was completed. The estimate, invoice, receipt, payment record, written notes, and any attached design/order documents listed below are incorporated into this Agreement by reference.
+          </div>
+
+          <div class="doc-grid">
+            <div class="box">
+              <h3>Customer</h3>
+              <strong data-out="customerName"></strong><br />
+              <span data-out="email"></span><br />
+              <span data-out="phone"></span><br />
+              <span data-out="street"></span><br />
+              <span data-out="cityStateZip"></span>
+            </div>
+            <div class="box">
+              <h3>Linked Records</h3>
+              <div class="kv">
+                <span>Estimate #</span><strong data-out="estimateNumber"></strong>
+                <span>Contract / order #</span><strong data-out="contractNumber"></strong>
+                <span>Invoice #</span><strong data-out="invoiceNumber"></strong>
+                <span>Receipt #</span><strong data-out="receiptNumber"></strong>
+                <span>Sale date</span><strong data-out="saleDate"></strong>
+                <span>Payment date</span><strong data-out="paymentDate"></strong>
+                <span>Invoice amount</span><strong data-out="invoiceAmount"></strong>
+                <span>Amount paid</span><strong data-out="amountPaid"></strong>
+                <span>Balance due</span><strong data-out="balanceDue"></strong>
+                <span>Method</span><strong data-out="paymentMethod"></strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="box" style="margin-top: 10px;">
+            <h3>Work / Materials Description</h3>
+            <div data-out="workDescription"></div>
+          </div>
+
+          <div class="box" style="margin-top: 10px;">
+            <h3>Notes / Exceptions</h3>
+            <div data-out="notes"></div>
+          </div>
+
+          <div class="terms">
+            <p><strong>Customer review instruction:</strong> Customer should review all pages of this contract, the estimate/invoice/receipt, and any attached design/order documents before signing. Initial each required section and sign the final page.</p>
+            <p style="margin-top: 8px;"><strong>Installer status:</strong> <span data-out="installerStatus"></span></p>
+          </div>
+        </article>
+
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>Customer: <span data-out="customerName"></span></div>
+              <div>Invoice: <span data-out="invoiceNumber"></span> | Sale date: <span data-out="saleDate"></span></div>
+            </div>
+            <div class="doc-title">
+              <strong>Florida Legal Disclaimers</strong>
+              <div class="page-tag">Page 2 of 5</div>
+            </div>
+          </header>
+
+          <section class="terms">
+            <div class="term-row">
+              <div>
+                <h3>Florida law and legal responsibility</h3>
+                <p>This packet contains legal language intended to allocate responsibility for the sale, handling, transport, storage, and installation of cabinetry and related materials. The parties acknowledge that this Agreement and its exhibits are governed by the laws of the State of Florida.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>Manufacturer warranties only</h3>
+                <p>Seller limits its warranties to those provided by manufacturers. All implied warranties, including merchantability and fitness for a particular purpose, are disclaimed to the fullest extent permitted by law.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>Transfer of responsibility after release</h3>
+                <p>Once materials leave the Store premises, liability for loss, damage, shortage, or defect transfers to the party taking physical possession, whether customer, installer, delivery driver, or other authorized party. Materials must be inspected and signed for at pickup or delivery.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>Legal costs and venue</h3>
+                <p>If a dispute, claim, or disagreement arising from this project must be taken to court, the customer is responsible for court costs, attorney fees, and associated legal expenses to the fullest extent applicable by law. Venue is Volusia County, Florida.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+          </section>
+        </article>
+
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>Customer: <span data-out="customerName"></span></div>
+              <div>Invoice: <span data-out="invoiceNumber"></span> | Sale date: <span data-out="saleDate"></span></div>
+            </div>
+            <div class="doc-title">
+              <strong>Purchase Agreement 1</strong>
+              <div class="page-tag">Page 3 of 5</div>
+            </div>
+          </header>
+
+          <section class="terms">
+            <div class="term-row">
+              <div>
+                <h3>1. Sale and scope</h3>
+                <p>Edgewater Cabinet Store, LLC sells cabinetry and related materials to the customer according to the estimate, invoice, receipt, and order documents listed in this Agreement. The Store does not perform installation. Installation services, if any, are provided by an independent third-party installer unless expressly stated otherwise in writing.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>2. Measurements, verification, and risk</h3>
+                <p>Customer acknowledges that cabinetry, layouts, designs, and materials are ordered based on measurements provided to the Store. Measurements may be verified by the Store, verified by an approved independent installer, or provided by the Customer and not verified. Customer-provided or unverified measurements are used at the Customer's sole risk.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>Release for unverified measurements</h3>
+                <p>To the fullest extent permitted by Florida law, Customer releases the Store from claims, damages, losses, costs, fit issues, design incompatibility, labor, delay, or reorder costs arising from inaccurate or unverified measurements. Proceeding without verified measurements is informed consent and a material reason the Store may proceed.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>3. Design approval, special order items, and final sales</h3>
+                <p>Once a design has been approved and materials have been ordered from the vendor, all sales are final. Changes in customer preference, mind, or design do not entitle the customer to refund, return, or exchange. Special order items are priced separately and cannot delay payment for standard cabinetry or completed phases.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+          </section>
+        </article>
+
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>Customer: <span data-out="customerName"></span></div>
+              <div>Invoice: <span data-out="invoiceNumber"></span> | Sale date: <span data-out="saleDate"></span></div>
+            </div>
+            <div class="doc-title">
+              <strong>Purchase Agreement 2</strong>
+              <div class="page-tag">Page 4 of 5</div>
+            </div>
+          </header>
+
+          <section class="terms">
+            <div class="term-row">
+              <div>
+                <h3>4. Installer payment and installation estimate disclosure</h3>
+                <p>The independent installer is paid separately and directly by the Customer unless the invoice expressly states otherwise. Any installation amount provided by the Store is an estimate only, not a guaranteed or fixed price. Installer pricing, workmanship, scheduling, payment, and disputes are between the Customer and installer. The Store assumes no liability for installer pricing or performance.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>5. Inspection and acceptance</h3>
+                <p>The party taking possession of materials from the Store must inspect all materials before leaving the Store and sign a material release form or inspection checklist. If the Store arranges delivery, the Customer must inspect materials upon delivery and sign before the driver departs. Once signed for, the Store is released from liability for loss, damage, shortages, or defects except as provided by manufacturer warranty.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>6. Payment terms and release of materials</h3>
+                <p>Unless otherwise agreed in writing, full payment for materials is required in advance. No materials will be ordered, released, scheduled for delivery, or transferred until payment is received and fully cleared. Payments apply to materials only and do not include installation unless expressly stated on the invoice.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>7. Limitation of liability</h3>
+                <p>The Store's sole liability for defective materials shall not exceed the purchase price of the defective materials as stated on the invoice. The Store is not liable for consequential, incidental, special, or punitive damages, including labor, installation charges, delays, loss of use, or installer-related claims.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+            <div class="term-row">
+              <div>
+                <h3>8. Entire agreement and written changes</h3>
+                <p>This Agreement, together with the estimate, invoice, receipt/payment record, and written addenda, is the entire agreement between the parties. Any later change, customer-requested revision, additional work, balance, or exception must be documented in writing.</p>
+              </div>
+              <div class="initial-box"><div class="initial-line"></div>Customer initials</div>
+            </div>
+          </section>
+        </article>
+
+        <article class="print-page">
+          <header class="doc-head">
+            <div>
+              <div class="brand">Edgewater Cabinet Store, LLC</div>
+              <div>Customer: <span data-out="customerName"></span></div>
+              <div>Invoice: <span data-out="invoiceNumber"></span> | Sale date: <span data-out="saleDate"></span></div>
+            </div>
+            <div class="doc-title">
+              <strong>Signatures</strong>
+              <div class="page-tag">Page 5 of 5</div>
+            </div>
+          </header>
+
+          <div class="notice">
+            By signing below, Customer confirms they reviewed this Customer Material Purchase Agreement, the estimate, invoice, receipt/payment record, and any attached design/order documents. Customer agrees this signed emergency contract applies to the paid order listed above.
+          </div>
+
+          <div class="box">
+            <h3>Payment Summary</h3>
+            <div class="kv">
+              <span>Invoice amount</span><strong data-out="invoiceAmount"></strong>
+              <span>Amount paid</span><strong data-out="amountPaid"></strong>
+              <span>Balance due</span><strong data-out="balanceDue"></strong>
+              <span>Receipt #</span><strong data-out="receiptNumber"></strong>
+              <span>Payment method</span><strong data-out="paymentMethod"></strong>
+              <span>Payment date</span><strong data-out="paymentDate"></strong>
+            </div>
+          </div>
+
+          <section class="terms split-payment-text">
+            <h3 class="section-title">Split Payment Addendum, if approved</h3>
+            <p>Split payment arrangements are not standard and are approved only at the Store's discretion. Payment 1 must be received and cleared before materials are ordered. Remaining payments must be received and cleared before materials are released or delivered. Failure to make any payment when due may delay, suspend, or cancel the order. Materials remain the property of the Store until paid in full.</p>
+          </section>
+
+          <div class="signature-area">
+            <div>
+              <div class="line"></div>
+              Customer signature
+            </div>
+            <div>
+              <div class="line"></div>
+              Date
+            </div>
+            <div>
+              <div class="line"></div>
+              Printed customer name
+            </div>
+            <div>
+              <div class="line"></div>
+              Customer initials
+            </div>
+            <div>
+              <div class="line"></div>
+              Store representative: <span data-out="storeRep"></span>
+            </div>
+            <div>
+              <div class="line"></div>
+              Date
+            </div>
+            <div class="wide-sign">
+              <div class="line"></div>
+              Store representative title: <span data-out="storeRepTitle"></span>
+            </div>
+          </div>
+
+          <p class="footer-note">Emergency paid contract. Save signed copy with the estimate, invoice, receipt, and customer file.</p>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const fields = [...document.querySelectorAll("[data-field]")];
+
+      function money(value) {
+        const raw = String(value || "").replace(/[^0-9.-]/g, "");
+        if (!raw) return "";
+        const num = Number(raw);
+        return Number.isFinite(num) ? `$ ${num.toFixed(2)}` : value;
+      }
+
+      function valueFor(name) {
+        const input = document.querySelector(`[data-field="${name}"]`);
+        if (!input) return "";
+        if (input.type === "checkbox") return input.checked ? "Yes" : "";
+        return input.value.trim();
+      }
+
+      function formatPhone(value) {
+        const digits = String(value || "").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "").slice(0, 10);
+        if (digits.length <= 3) return digits;
+        if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      }
+
+      function today() {
+        const now = new Date();
+        return `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
+      }
+
+      function render() {
+        fields.forEach((field) => {
+          const name = field.dataset.field;
+          const value = field.type === "checkbox" ? (field.checked ? "Yes" : "") : field.value.trim();
+          document.querySelectorAll(`[data-out="${name}"]`).forEach((out) => {
+            out.textContent = ["amountPaid", "invoiceAmount", "balanceDue"].includes(name) ? money(value) : value;
+          });
+        });
+
+        const cityStateZip = [
+          valueFor("city"),
+          [valueFor("state").toUpperCase(), valueFor("zip")].filter(Boolean).join(" "),
+        ].filter(Boolean).join(", ");
+        document.querySelectorAll('[data-out="cityStateZip"]').forEach((out) => {
+          out.textContent = cityStateZip;
+        });
+
+        const splitApplies = document.querySelector('[data-field="splitPaymentApplies"]').checked;
+        document.querySelectorAll(".split-payment-text").forEach((section) => {
+          section.style.display = splitApplies ? "" : "none";
+        });
+      }
+
+      document.querySelector('[data-field="preparedDate"]').value = today();
+      document.querySelector('[data-field="paymentDate"]').value = today();
+      document.querySelector('[data-field="saleDate"]').value = today();
+
+      document.querySelector('[data-field="phone"]').addEventListener("input", (event) => {
+        event.target.value = formatPhone(event.target.value);
+        render();
+      });
+
+      ["amountPaid", "invoiceAmount", "balanceDue"].forEach((name) => {
+        const input = document.querySelector(`[data-field="${name}"]`);
+        input.addEventListener("blur", () => {
+          const raw = input.value.replace(/[^0-9.-]/g, "");
+          if (!raw) return;
+          const num = Number(raw);
+          if (Number.isFinite(num)) input.value = num.toFixed(2);
+          render();
+        });
+      });
+
+      fields.forEach((field) => field.addEventListener("input", render));
+      fields.forEach((field) => field.addEventListener("change", render));
+
+      document.querySelector("#print").addEventListener("click", () => {
+        render();
+        window.print();
+      });
+
+      document.querySelector("#clear").addEventListener("click", () => {
+        if (!window.confirm("Clear this emergency contract form?")) return;
+        fields.forEach((field) => {
+          if (field.type === "checkbox") {
+            field.checked = false;
+          } else {
+            field.value = "";
+          }
+        });
+        document.querySelector('[data-field="preparedDate"]').value = today();
+        document.querySelector('[data-field="paymentDate"]').value = today();
+        document.querySelector('[data-field="saleDate"]').value = today();
+        document.querySelector('[data-field="storeRep"]').value = "Jamie";
+        document.querySelector('[data-field="storeRepTitle"]').value = "Store Representative";
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>

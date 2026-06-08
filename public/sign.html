@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign Edgewater Customer Packet</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell narrow">
+      <h1 class="visually-hidden">Sign Customer Packet</h1>
+
+      <section id="verify-panel" class="panel">
+        <div class="section-head">
+          <h2>Open packet</h2>
+          <p>Use the packet password provided by Edgewater. If it does not open, contact the store for help.</p>
+        </div>
+        <form id="verify-form" class="inline-form">
+          <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="primary" type="submit">Continue</button>
+        </form>
+        <p id="verify-error" class="error"></p>
+      </section>
+
+      <section id="sign-panel" class="panel hidden">
+        <div class="section-head">
+          <div>
+            <h2 id="packet-title">Packet</h2>
+            <p id="packet-subtitle"></p>
+          </div>
+        </div>
+
+        <section class="signature-list signing-review-required" id="review-required-notice">
+          <strong>Review contract first</strong>
+          <p>Open the contract PDF below, read through all pages to the end, then confirm that you read and understand it. The signature area stays locked until that step is complete.</p>
+          <ol class="signing-step-list">
+            <li>Open the contract PDF.</li>
+            <li>Review every page, including the estimate, contract terms, required initials, and signature pages.</li>
+            <li>Scroll to the end of the review area and confirm you read and understand the contract.</li>
+            <li>Complete initials, agreement, and signature.</li>
+          </ol>
+          <p id="review-status" class="status-list">Waiting for contract review.</p>
+        </section>
+
+        <section id="review-choice" class="signature-list">
+          <strong>Contract to review and sign</strong>
+          <p>This is the contract packet Edgewater is asking you to sign. Open it before completing the signature form.</p>
+          <div class="result-actions">
+            <button type="button" id="full-review" class="primary">Open contract PDF</button>
+            <button type="button" id="guided-review">Show signing sections</button>
+          </div>
+        </section>
+
+        <section id="full-document-panel" class="signature-list hidden">
+          <strong>Contract preview</strong>
+          <p>Read through the PDF below. When you reach the end, use the confirmation button to unlock the signature form.</p>
+          <div id="full-document-review-area" class="signable-pdf-review-area" tabindex="0">
+            <iframe id="full-document-frame" class="signable-pdf-frame" title="Contract PDF preview"></iframe>
+            <div id="review-end-marker" class="review-end-marker">
+              End of contract review area. Confirm only after reading all pages of the PDF.
+            </div>
+          </div>
+          <div class="result-actions">
+            <button type="button" id="review-confirm" class="primary" disabled>Scroll to the end to confirm</button>
+            <a id="open-contract-new-tab" href="#" target="_blank" rel="noreferrer">Open PDF in a new tab</a>
+          </div>
+        </section>
+
+        <div id="review-confirm-modal" class="portal-help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="review-confirm-title">
+          <section class="portal-help-card review-confirm-card">
+            <div class="section-head">
+              <div>
+                <h2 id="review-confirm-title">Confirm Contract Review</h2>
+                <p>Confirm this only after you have read every page and understand what you are signing.</p>
+              </div>
+            </div>
+            <label class="review-confirm-check">
+              <input type="checkbox" id="review-understood-check" />
+              I have opened the contract PDF, reviewed all pages to the end, and understand that my initials and signature will be applied electronically.
+            </label>
+            <div class="result-actions">
+              <button type="button" id="review-modal-cancel">Go back</button>
+              <button type="button" id="review-modal-save" class="primary" disabled>Confirm and unlock signature</button>
+            </div>
+          </section>
+        </div>
+
+        <section class="signature-list">
+          <strong>Paper signing option</strong>
+          <p>If you do not want to sign electronically, print the filled-in contract PDF and email it back or bring it to the store.</p>
+          <div class="result-actions">
+            <a id="download-signable" href="#" target="_blank" rel="noreferrer">Print / download contract PDF instead</a>
+          </div>
+        </section>
+
+        <form id="sign-form" class="hidden">
+          <div id="section-list" class="signature-list"></div>
+
+          <div class="grid">
+            <label>Printed name<input name="printedName" required /></label>
+            <label>Initials<input name="customerInitials" maxlength="5" required /></label>
+            <label class="wide">Notes<textarea name="customerNotes" rows="4"></textarea></label>
+          </div>
+
+          <section class="signature-list">
+            <strong>Digital signature agreement</strong>
+            <label><input type="checkbox" name="digitalSignatureAccepted" required /> I agree to sign this packet electronically. If I do not agree, I will contact Edgewater or come into the store to sign another way.</label>
+          </section>
+
+          <section class="signature-list communication-consent">
+            <strong>Communication permissions</strong>
+            <p>Account and contract emails are part of this transaction and portal use.</p>
+            <label><input type="checkbox" name="accountEmailAccepted" checked required /> I understand Edgewater may email me about this contract, account, order, appointments, receipts, and service updates.</label>
+            <p>Optional communication preferences can be changed later.</p>
+            <label><input type="checkbox" name="marketingEmailConsent" /> I agree to receive optional marketing emails from Edgewater.</label>
+            <label><input type="checkbox" name="accountTextConsent" /> I agree to receive account/order text messages from Edgewater.</label>
+            <label><input type="checkbox" name="marketingTextConsent" /> I agree to receive optional marketing text messages from Edgewater.</label>
+            <label><input type="checkbox" name="socialMediaTagConsent" /> Edgewater may tag me on social media for project, sales, or promotional posts.</label>
+            <label class="stacked-field">Social media name/profile <input name="socialMediaProfile" autocomplete="off" placeholder="@name or profile URL" /></label>
+          </section>
+
+          <div class="signature-box">
+            <div class="signature-toolbar">
+              <strong>Signature</strong>
+              <button type="button" class="ghost" id="clear-signature">Clear</button>
+            </div>
+            <canvas id="signature-canvas" width="900" height="260"></canvas>
+          </div>
+
+          <div class="signature-action-bar">
+            <button class="primary full" type="submit">Finalize signed PDF</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="done-panel" class="result hidden" aria-live="polite"></section>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/password-toggle.js"></script>
+    <script src="/js/public-branding.js"></script>
+    <script src="/js/sign.js"></script>
+  </body>
+</html>

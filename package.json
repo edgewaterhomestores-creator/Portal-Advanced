@@ -1,0 +1,38 @@
+{
+  "name": "portal-advanced",
+  "version": "1.0.0",
+  "description": "Portal Advanced internal contract, customer, installer, and document workflow.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "test": "node scripts/check_css_conflicts.js && node server/self-test.js",
+    "test:css": "node scripts/check_css_conflicts.js",
+    "test:api": "node server/api-smoke-test.js",
+    "test:server": "node scripts/server-diagnostics.js",
+    "scan:gmail": "node scripts/scan-gmail-imports.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "googleapis": "^173.0.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.7",
+    "pdf-lib": "^1.17.1",
+    "pdfkit": "^0.18.0",
+    "pg": "^8.21.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/edgewaterhomestores-creator/Portal-Advanced.git"
+  },
+  "bugs": {
+    "url": "https://github.com/edgewaterhomestores-creator/Portal-Advanced/issues"
+  },
+  "homepage": "https://github.com/edgewaterhomestores-creator/Portal-Advanced#readme"
+}

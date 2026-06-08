@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Estimate Response</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell estimate-response-shell">
+      <section class="panel estimate-response-card">
+        <div class="section-head">
+          <div>
+            <h1>Estimate Response</h1>
+            <p id="estimate-response-subtitle">Review the estimate and submit your response.</p>
+          </div>
+        </div>
+
+        <div id="estimate-response-status" class="status-list" aria-live="polite"></div>
+
+        <div id="estimate-response-content" class="hidden">
+          <div class="estimate-response-summary">
+            <div>
+              <span>Estimate</span>
+              <strong id="response-estimate-number"></strong>
+            </div>
+            <div>
+              <span>Customer</span>
+              <strong id="response-customer"></strong>
+            </div>
+            <div>
+              <span>Total</span>
+              <strong id="response-total"></strong>
+            </div>
+          </div>
+
+          <div class="estimate-response-preview">
+            <iframe id="response-pdf-frame" title="Estimate PDF preview"></iframe>
+          </div>
+
+          <form id="estimate-response-form" class="estimate-response-form" autocomplete="off">
+            <input type="hidden" name="action" value="accept" />
+            <div class="estimate-response-choice" role="group" aria-label="Estimate response">
+              <button type="button" class="primary" data-response-action="accept">Accept Estimate</button>
+              <button type="button" class="ghost" data-response-action="decline">Decline Estimate</button>
+            </div>
+
+            <div id="accept-fields">
+              <label>Type your name
+                <input name="typedName" autocomplete="name" />
+              </label>
+              <label class="toggle">
+                <input name="accepted" type="checkbox" />
+                I reviewed this estimate and accept it.
+              </label>
+            </div>
+
+            <div id="decline-fields" class="hidden">
+              <label>Notes or requested changes <span class="optional-label">(optional)</span>
+                <textarea name="notes" rows="4" placeholder="You can leave this blank, or tell us what you would like changed."></textarea>
+              </label>
+              <label>Type your name <span class="optional-label">(optional)</span>
+                <input name="declineName" autocomplete="name" />
+              </label>
+            </div>
+
+            <button class="primary full-width-button" id="estimate-response-submit" type="submit">Confirm Acceptance</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/public-branding.js"></script>
+    <script src="/js/estimate-response.js"></script>
+  </body>
+</html>

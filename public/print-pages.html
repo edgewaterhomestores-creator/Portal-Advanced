@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Print Contract Pages</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <h1 class="visually-hidden">Print Contract Pages</h1>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Blank Packet Pages</h2>
+            <p>Select the blank pages needed for handwritten signatures or the paper file.</p>
+          </div>
+          <div class="button-row">
+            <button type="button" class="ghost" id="blank-pages-initial">Initial contract set</button>
+            <button type="button" class="ghost" id="blank-pages-all">All pages</button>
+          </div>
+        </div>
+        <div id="blank-page-options" class="page-grid"></div>
+        <div class="result-actions">
+          <button type="button" class="primary" id="print-selected-pages">Print / Save as PDF</button>
+          <button type="button" class="ghost inline-help-button" id="print-save-help" aria-label="Print or save PDF help">?</button>
+          <button type="button" id="clear-selected-pages">Clear</button>
+        </div>
+        <p id="print-pages-status" class="status-list"></p>
+      </section>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/print-pages.js"></script>
+  </body>
+</html>

@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Emergency Paid Contract - Edgewater Cabinet Store</title>
+    <style>
+      :root {
+        --ink: #172331;
+        --muted: #4d5b68;
+        --line: #cdd7df;
+        --soft: #eef3f6;
+        --panel: #ffffff;
+        --slate: #203342;
+        --accent: #0f6e8f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #e8eef2;
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 14px;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: minmax(360px, 480px) minmax(680px, 1fr);
+        gap: 14px;
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 14px;
+      }
+
+      .panel,
+      .sheet {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        box-shadow: 0 8px 22px rgba(20, 32, 44, 0.08);
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      h2 {
+        margin: 14px 0 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+        font-size: 14px;
+      }
+
+      .subtle {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 4px;
+        color: #273847;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid #b9c8d2;
+        border-radius: 5px;
+        padding: 7px 8px;
+        color: var(--ink);
+        font: inherit;
+        background: #fff;
+      }
+
+      textarea {
+        min-height: 72px;
+        resize: vertical;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1.2fr 0.55fr 0.75fr;
+        gap: 10px;
+      }
+
+      .wide {
+        grid-column: 1 / -1;
+      }
+
+      .actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin: 14px -14px -14px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      button {
+        min-height: 34px;
+        border: 1px solid #9fb0bc;
+        border-radius: 5px;
+        padding: 7px 12px;
+        color: var(--slate);
+        font-weight: 700;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      button.primary {
+        border-color: var(--slate);
+        color: #fff;
+        background: var(--slate);
+      }
+
+      .sheet {
+        width: 8.5in;
+        min-height: 11in;
+        margin: 0 auto;
+        padding: 0.45in;
+      }
+
+      .doc-head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: start;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .brand {
+        font-weight: 800;
+        font-size: 18px;
+      }
+
+      .doc-title {
+        text-align: right;
+      }
+
+      .doc-title strong {
+        display: block;
+        font-size: 21px;
+        letter-spacing: 0.04em;
+      }
+
+      .warning {
+        margin: 12px 0;
+        padding: 9px 10px;
+        border-left: 4px solid var(--accent);
+        background: #e7f3f7;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .doc-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .box {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 9px;
+        min-height: 86px;
+      }
+
+      .box h3 {
+        margin-bottom: 7px;
+        color: var(--accent);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 4px 8px;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .kv span:first-child {
+        color: var(--muted);
+      }
+
+      .terms {
+        margin-top: 12px;
+        font-size: 12px;
+        line-height: 1.42;
+      }
+
+      .terms h3 {
+        margin: 10px 0 4px;
+        font-size: 12px;
+      }
+
+      .terms ol {
+        margin: 6px 0 0 18px;
+        padding: 0;
+      }
+
+      .terms li {
+        margin-bottom: 5px;
+      }
+
+      .signature-area {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 22px;
+        font-size: 12px;
+      }
+
+      .line {
+        height: 34px;
+        border-bottom: 1px solid var(--ink);
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 10px;
+        text-align: right;
+      }
+
+      [data-out]:empty::before {
+        content: " ";
+        white-space: pre;
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sheet {
+          width: 100%;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .panel {
+          display: none;
+        }
+
+        .app {
+          display: block;
+          max-width: none;
+          padding: 0;
+        }
+
+        .sheet {
+          width: 8.5in;
+          min-height: 11in;
+          margin: 0;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+          padding: 0.25in;
+        }
+
+        @page {
+          size: letter;
+          margin: 0.25in;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <h1>Emergency Paid Contract</h1>
+        <p class="subtle">Use when payment happened before the normal portal contract was sent. Fill, print/save as PDF, then have the customer sign.</p>
+
+        <h2>Customer</h2>
+        <div class="grid">
+          <label>Name<input data-field="customerName" autocomplete="off" /></label>
+          <label>Phone<input data-field="phone" autocomplete="off" /></label>
+          <label class="wide">Email<input data-field="email" autocomplete="off" /></label>
+          <label class="wide">Street<input data-field="street" autocomplete="off" /></label>
+          <div class="grid-3 wide">
+            <label>City<input data-field="city" autocomplete="off" /></label>
+            <label>State<input data-field="state" maxlength="2" autocomplete="off" /></label>
+            <label>ZIP<input data-field="zip" autocomplete="off" /></label>
+          </div>
+        </div>
+
+        <h2>Documents Jamie Should Have</h2>
+        <div class="grid">
+          <label>Estimate #<input data-field="estimateNumber" /></label>
+          <label>Invoice #<input data-field="invoiceNumber" /></label>
+          <label>Receipt #<input data-field="receiptNumber" /></label>
+          <label>Payment date<input data-field="paymentDate" placeholder="MM/DD/YYYY" /></label>
+          <label>Amount paid<input data-field="amountPaid" placeholder="0.00" /></label>
+          <label>Payment method<input data-field="paymentMethod" placeholder="Card, cash, check, etc." /></label>
+        </div>
+
+        <h2>Job / Order</h2>
+        <div class="grid">
+          <label class="wide">Work description<textarea data-field="workDescription"></textarea></label>
+          <label class="wide">Notes / exceptions<textarea data-field="notes"></textarea></label>
+          <label>Store rep<input data-field="storeRep" value="Jamie" /></label>
+          <label>Date prepared<input data-field="preparedDate" /></label>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="clear">Clear</button>
+          <button class="primary" type="button" id="print">Print / Save PDF</button>
+        </div>
+      </section>
+
+      <section class="sheet" aria-label="Printable contract">
+        <header class="doc-head">
+          <div>
+            <div class="brand">Edgewater Cabinet Store</div>
+            <div>2119 S Ridgewood Ave<br />Edgewater, FL 32141</div>
+            <div>(386) 444-6800 | edgewatercabinetstore@gmail.com</div>
+          </div>
+          <div class="doc-title">
+            <strong>PAID CONTRACT ACKNOWLEDGMENT</strong>
+            <span data-out="preparedDate"></span>
+          </div>
+        </header>
+
+        <div class="warning">
+          This document is used when payment was received before the normal electronic contract workflow was completed. It references the existing estimate, invoice, and receipt/payment record and confirms the customer agreement for the job described below.
+        </div>
+
+        <div class="doc-grid">
+          <div class="box">
+            <h3>Customer</h3>
+            <strong data-out="customerName"></strong><br />
+            <span data-out="email"></span><br />
+            <span data-out="phone"></span><br />
+            <span data-out="street"></span><br />
+            <span data-out="cityStateZip"></span>
+          </div>
+          <div class="box">
+            <h3>Linked Records</h3>
+            <div class="kv">
+              <span>Estimate #</span><strong data-out="estimateNumber"></strong>
+              <span>Invoice #</span><strong data-out="invoiceNumber"></strong>
+              <span>Receipt #</span><strong data-out="receiptNumber"></strong>
+              <span>Payment date</span><strong data-out="paymentDate"></strong>
+              <span>Amount paid</span><strong data-out="amountPaid"></strong>
+              <span>Method</span><strong data-out="paymentMethod"></strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="box" style="margin-top: 12px;">
+          <h3>Work Description</h3>
+          <div data-out="workDescription"></div>
+        </div>
+
+        <div class="terms">
+          <h3>Agreement</h3>
+          <ol>
+            <li>The customer confirms that the estimate and invoice listed above describe the work, products, materials, and/or services being purchased from Edgewater Cabinet Store.</li>
+            <li>Payment has already been received or recorded as referenced above. Any remaining balance, change order, addendum, or additional work must be documented separately.</li>
+            <li>Customer agrees that product availability, delivery timing, field measurements, installation conditions, and vendor lead times may affect scheduling and final completion timing.</li>
+            <li>Any customer-requested changes after this acknowledgment may require a revised estimate, change order, additional payment, or updated signed document.</li>
+            <li>This emergency acknowledgment should be attached to the customer file with the estimate, invoice, and receipt/payment record.</li>
+          </ol>
+
+          <h3>Notes / Exceptions</h3>
+          <div data-out="notes"></div>
+        </div>
+
+        <div class="signature-area">
+          <div>
+            <div class="line"></div>
+            Customer signature
+          </div>
+          <div>
+            <div class="line"></div>
+            Date
+          </div>
+          <div>
+            <div class="line"></div>
+            Printed customer name
+          </div>
+          <div>
+            <div class="line"></div>
+            Store representative: <span data-out="storeRep"></span>
+          </div>
+        </div>
+
+        <p class="footer-note">Emergency paid-contract form. Save signed copy with estimate, invoice, and receipt.</p>
+      </section>
+    </main>
+
+    <script>
+      const fields = [...document.querySelectorAll("[data-field]")];
+
+      function money(value) {
+        const raw = String(value || "").replace(/[^0-9.-]/g, "");
+        if (!raw) return "";
+        const num = Number(raw);
+        return Number.isFinite(num) ? `$ ${num.toFixed(2)}` : value;
+      }
+
+      function valueFor(name) {
+        const input = document.querySelector(`[data-field="${name}"]`);
+        return input ? input.value.trim() : "";
+      }
+
+      function render() {
+        fields.forEach((field) => {
+          const name = field.dataset.field;
+          document.querySelectorAll(`[data-out="${name}"]`).forEach((out) => {
+            out.textContent = name === "amountPaid" ? money(field.value) : field.value.trim();
+          });
+        });
+
+        const cityStateZip = [
+          valueFor("city"),
+          [valueFor("state").toUpperCase(), valueFor("zip")].filter(Boolean).join(" "),
+        ].filter(Boolean).join(", ");
+        document.querySelectorAll('[data-out="cityStateZip"]').forEach((out) => {
+          out.textContent = cityStateZip;
+        });
+      }
+
+      function today() {
+        const now = new Date();
+        return `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
+      }
+
+      document.querySelector('[data-field="preparedDate"]').value = today();
+      document.querySelector('[data-field="paymentDate"]').value = today();
+      fields.forEach((field) => field.addEventListener("input", render));
+      document.querySelector("#print").addEventListener("click", () => {
+        render();
+        window.print();
+      });
+      document.querySelector("#clear").addEventListener("click", () => {
+        if (!window.confirm("Clear this emergency contract form?")) return;
+        fields.forEach((field) => {
+          field.value = "";
+        });
+        document.querySelector('[data-field="preparedDate"]').value = today();
+        document.querySelector('[data-field="paymentDate"]').value = today();
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>

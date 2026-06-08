@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edgewater Customer Access</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <main class="shell narrow">
+      <h1 class="visually-hidden">Customer Access</h1>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <h2 id="customer-limited-heading">Customer Access</h2>
+            <p id="customer-limited-subtitle">Use the estimate or contract link Edgewater sent you.</p>
+          </div>
+        </div>
+        <p class="notice">
+          Full customer account history is not open yet. For now, customers can use individual estimate links,
+          contract signing links, and customer-visible document links sent by Edgewater.
+        </p>
+        <p>
+          If you have a question or need help with an estimate, contract, receipt, acknowledgement, or account item,
+          send a message below and Edgewater Cabinet Store will follow up.
+        </p>
+      </section>
+
+      <section class="panel customer-contact-panel">
+        <div class="section-head">
+          <h2>Message Edgewater</h2>
+        </div>
+        <div id="customer-contact-popup" class="form-popup hidden" role="status" aria-live="polite">
+          <span id="customer-contact-popup-message"></span>
+          <button type="button" class="ghost form-popup-close" id="customer-contact-popup-close" aria-label="Close message">Close</button>
+        </div>
+        <form id="customer-limited-contact-form" class="grid">
+          <input type="hidden" name="topic" value="customerQuestion" />
+          <label>Preferred contact<input name="preferredContact" placeholder="Phone or email" /></label>
+          <label>Best time
+            <select name="bestTime">
+              <option value="">Any time</option>
+              <option value="Morning">Morning</option>
+              <option value="Midday">Midday</option>
+              <option value="Afternoon">Afternoon</option>
+              <option value="Evening">Evening</option>
+              <option value="Weekday">Weekday</option>
+              <option value="Weekend">Weekend</option>
+            </select>
+          </label>
+          <label class="wide">Message<textarea name="message" rows="5" required></textarea></label>
+          <button class="primary wide" type="submit">Send message</button>
+        </form>
+        <p id="customer-contact-status" class="status-list"></p>
+      </section>
+    </main>
+
+    <script src="/js/http.js"></script>
+    <script src="/js/small-screen.js"></script>
+    <script src="/js/portal-nav.js"></script>
+    <script src="/js/public-branding.js"></script>
+    <script src="/js/customer-limited.js"></script>
+  </body>
+</html>
