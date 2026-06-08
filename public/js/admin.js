@@ -19,9 +19,19 @@ const pagesAll = document.querySelector("#pages-all");
 const pagesAgreement = document.querySelector("#pages-agreement");
 const storeRepSelect = document.querySelector("#store-rep-select");
 const storeSignatureSelect = document.querySelector("#store-signature-select");
+const storeSignaturePreview = document.querySelector("#store-signature-preview");
 const installerDirectoryList = document.querySelector("#installer-directory-list");
 const salesRepList = document.querySelector("#sales-rep-list");
 const storeSignatureSetupLink = document.querySelector("#store-signature-setup-link");
+const contractSignatureModal = document.querySelector("#contract-signature-modal");
+const contractSignatureForm = document.querySelector("#contract-signature-form");
+const contractSignatureStatus = document.querySelector("#contract-signature-status");
+const contractSignatureCanvas = document.querySelector("#contract-signature-canvas");
+const contractSignatureCtx = contractSignatureCanvas?.getContext("2d");
+const contractSignatureSaveButton = document.querySelector("#contract-signature-save");
+const contractSignatureCloseButton = document.querySelector("#contract-signature-close");
+const contractSignatureCancelButton = document.querySelector("#contract-signature-cancel");
+const contractSignatureClearButton = document.querySelector("#contract-signature-clear");
 const logoutButton = document.querySelector("#logout");
 const copyMailingAddressButton = document.querySelector("#copy-mailing-address");
 const copyBillingAddressButton = document.querySelector("#copy-billing-address");
@@ -39,6 +49,7 @@ const estimateRefreshButton = document.querySelector("#refresh-estimates");
 const estimateFolderStatus = document.querySelector("#estimate-folder-status");
 const estimateFileList = document.querySelector("#estimate-file-list");
 const estimatePreview = document.querySelector("#estimate-preview");
+const estimatePreviewButton = document.querySelector("#view-estimate-preview");
 const openEstimateToolLink = document.querySelector("#open-estimate-tool");
 const submitButton = document.querySelector("#packet-submit");
 const saveExitButton = document.querySelector("#packet-save-exit");
@@ -78,6 +89,7 @@ let customerSearchTimer = null;
 let activeCustomerSearchId = 0;
 let selectedCustomer = null;
 let currentStaffUser = null;
+let settingsCache = null;
 let packetSubmitInFlight = false;
 let pendingDuplicateSave = null;
 let serverDraftTimer = null;
@@ -89,6 +101,9 @@ let zipLookupPromise = null;
 let zipLookupMap = null;
 let installerDirectoryRows = [];
 let installerQuickAddKeys = new Set();
+let drawingContractSignature = false;
+let hasDrawnContractSignature = false;
+let savingContractSignature = false;
 
 const draftStoragePrefix = "edgewater-contract-draft:";
 const sectionOrder = ["estimate", "customer", "project", "pages", "order", "payments", "vendors", "materials", "signatures", "notes"];
@@ -178,7 +193,8 @@ const directDateFieldNames = new Set([
   "order.customerAcceptedDate",
   "order.storeRepDate",
 ]);
-const rowDateFieldNames = new Set(["dueDate", "customerPaymentDate", "vendorOrderDate", "expectedMaterialDate", "actualMaterialDate", "date"]);
+const rowDateFieldNames = new Set(["customerPaymentDate", "vendorOrderDate", "expectedMaterialDate", "actualMaterialDate", "date"]);
+const receivedPaymentFieldNames = new Set(["paidInitials", "paidAmountDate"]);
 const directCurrencyFieldNames = new Set([
   "order.invoiceAmount",
   "payments.totalInvoiceAmount",
@@ -290,6 +306,22 @@ function formatDateInput(input) {
   if (formatted) input.value = formatted;
 }
 
+function fieldLabelForInput(input) {
+  const label = input.closest("label");
+  if (label) {
+    const clone = label.cloneNode(true);
+    clone.querySelectorAll("input, select, textarea, button").forEach((node) => node.remove());
+    const text = clone.textContent.trim();
+    if (text) return text;
+  }
+  return input.name || "date field";
+}
+
+function sectionNameForInput(input) {
+  const section = input.closest("[data-section]");
+  return section?.dataset.section || "";
+}
+
 function formatDateInputs() {
   dateInputs().forEach(formatDateInput);
 }
@@ -322,8 +354,10 @@ function validateDateFields() {
   });
   if (!invalid) return true;
 
+  const targetSection = sectionNameForInput(invalid);
+  if (targetSection && currentSection() !== targetSection) switchSection(targetSection);
   invalid.focus();
-  showResult("<p class=\"error\">Use MM/DD/YYYY for date fields.</p>");
+  showResult(`<p class="error">Use MM/DD/YYYY for ${escapeHtml(fieldLabelForInput(invalid))}.</p>`);
   return false;
 }
 
@@ -1224,6 +1258,9 @@ function populatePacketForm(data) {
     "estimate.selectedEstimateFile",
     "estimate.estimateStatus",
     "estimate.acceptedFromEstimate",
+    "estimate.changedAfterAcceptance",
+    "estimate.approvalBypassed",
+    "estimate.approvalBypassedAt",
     "estimate.notes",
     "payments.splitPaymentApproved",
     "payments.totalInvoiceAmount",
@@ -1327,6 +1364,32 @@ function setFieldValueIfPresent(name, value, { onlyIfBlank = false } = {}) {
   setFieldValue(name, text);
 }
 
+function signatureOwnedByCurrentStaff(signature = {}) {
+  const username = String(currentStaffUser?.username || "").toLowerCase();
+  if (!username) return false;
+  const ownerUsername = String(signature.ownerUsername || "").toLowerCase();
+  if (ownerUsername) return ownerUsername === username;
+  return keyText(signature.name) && keyText(signature.name) === keyText(currentStaffUser?.name || currentStaffUser?.username);
+}
+
+function currentStaffSignature() {
+  return (settingsCache?.signatures || []).find(signatureOwnedByCurrentStaff) || null;
+}
+
+function signatureById(id) {
+  return (settingsCache?.signatures || []).find((signature) => signature.id === id);
+}
+
+function selectedStoreRepIsCurrentStaff() {
+  const selectedRep = storeRepProfiles.find((profile) => profile.id === storeRepSelect.value)
+    || storeRepProfiles.find((profile) => (
+      profile.name === form.elements["order.storeRep"]?.value
+      && profile.title === form.elements["order.storeRepTitle"]?.value
+    ));
+  if (!selectedRep || !currentStaffUser?.username) return false;
+  return String(selectedRep.username || "").toLowerCase() === String(currentStaffUser.username || "").toLowerCase();
+}
+
 function estimateCustomerAddress(estimate = {}) {
   return addressPartsToString({
     street: estimate.customerStreet || "",
@@ -1351,6 +1414,9 @@ function applyEstimateDataToContract(estimate = {}) {
   if (String(estimate.estimateStatus || "").toLowerCase() === "accepted") {
     setFieldValueIfPresent("estimate.acceptedFromEstimate", "true");
   }
+  if (estimate.changedAfterAcceptance) setFieldValueIfPresent("estimate.changedAfterAcceptance", "true");
+  if (estimate.approvalBypassed) setFieldValueIfPresent("estimate.approvalBypassed", "true");
+  if (estimate.approvalBypassedAt) setFieldValueIfPresent("estimate.approvalBypassedAt", estimate.approvalBypassedAt);
   setFieldValueIfPresent("order.invoiceAmount", estimateTotal, { onlyIfBlank: true });
   setFieldValueIfPresent("payments.totalInvoiceAmount", estimateTotal, { onlyIfBlank: true });
 
@@ -1378,8 +1444,22 @@ function applyEstimateParamsToContract(params) {
   setFieldValueIfPresent("customer.email", params.get("email"));
   setFieldValueIfPresent("estimate.estimateNumber", params.get("estimateNumber") || params.get("estimateId"));
   setFieldValueIfPresent("estimate.estimateStatus", params.get("estimateStatus"));
+  setFieldValueIfPresent("order.invoiceAmount", params.get("estimateTotal"), { onlyIfBlank: true });
+  setFieldValueIfPresent("payments.totalInvoiceAmount", params.get("estimateTotal"), { onlyIfBlank: true });
   if (params.get("estimateAccepted") === "1") {
     setFieldValueIfPresent("estimate.acceptedFromEstimate", "true");
+  }
+  const changedAfterAcceptance = params.get("estimateChangedAfterAcceptance") === "1";
+  const approvalBypassed = params.get("estimateApprovalBypassed") === "1";
+  if (changedAfterAcceptance) setFieldValueIfPresent("estimate.changedAfterAcceptance", "true");
+  if (approvalBypassed) {
+    setFieldValueIfPresent("estimate.approvalBypassed", "true");
+    setFieldValueIfPresent("estimate.approvalBypassedAt", params.get("estimateApprovalBypassedAt") || new Date().toISOString());
+    const notes = form.elements["estimate.notes"];
+    const bypassNote = "Store bypassed changed-estimate approval to start this contract.";
+    if (notes && !notes.value.includes(bypassNote)) {
+      notes.value = [notes.value.trim(), bypassNote].filter(Boolean).join("\n");
+    }
   }
   if (estimateAddress) {
     setAddressFieldsFromValue("order.install", estimateAddress);
@@ -1434,7 +1514,7 @@ function renderEstimateFiles(files) {
           <strong>${escapeHtml(file.fileName)}</strong>
           <small>${formatDate(file.updatedAt)} - ${formatFileSize(file.size)}</small>
         </span>
-        <span>${selected ? "Selected" : "Use"}</span>
+        <span>${selected ? "Selected" : "Attach"}</span>
       </button>
     `;
   }).join("");
@@ -1442,10 +1522,20 @@ function renderEstimateFiles(files) {
 
 async function loadEstimateFiles(query = "") {
   if (!estimateFileList) return;
+  const cleanedQuery = String(query || "").trim();
+  if (!cleanedQuery && !form.elements["estimate.selectedEstimateFile"]?.value) {
+    estimateFiles = [];
+    estimateFolderStatus.textContent = "Search customer, date, or filename to find saved estimates.";
+    estimateFileList.innerHTML = "";
+    estimatePreviewButton?.classList.add("hidden");
+    estimatePreview.removeAttribute("src");
+    estimatePreview.classList.add("hidden");
+    return;
+  }
 
   estimateFolderStatus.textContent = "Loading saved estimates...";
   try {
-    const response = await fetch(`/api/estimates?q=${encodeURIComponent(query)}`);
+    const response = await fetch(`/api/estimates?q=${encodeURIComponent(cleanedQuery)}`);
     if (response.status === 401) {
       window.location.href = "/login";
       return;
@@ -1486,8 +1576,9 @@ function selectEstimateFile(fileName) {
   form.elements["estimate.fileName"].value = file.fileName;
   form.elements["estimate.sourcePath"].value = estimateFolderPath || form.elements["estimate.sourcePath"].value;
   estimateFileInput.value = "";
-  estimatePreview.src = `${file.url}${String(file.url).includes("#") ? "" : "#toolbar=0&navpanes=0&scrollbar=0&view=FitH"}`;
-  estimatePreview.classList.remove("hidden");
+  estimatePreview.removeAttribute("src");
+  estimatePreview.classList.add("hidden");
+  estimatePreviewButton?.classList.remove("hidden");
   includePage(3);
   renderEstimateFiles(estimateFiles);
   estimateFolderStatus.textContent = "Estimate selected for this contract.";
@@ -1803,6 +1894,7 @@ async function loadBusinessSettings() {
   }
   if (serverDataResetId) sessionStorage.setItem("edgewater-contract-data-reset-id", serverDataResetId);
 
+  settingsCache = settings;
   currentStaffUser = settings.currentStaff || null;
   const staffRepProfiles = staffUsers
     .filter((user) => user.name && !user.disabled)
@@ -1831,13 +1923,17 @@ async function loadBusinessSettings() {
     storeRepSelect.append(option);
   });
 
+  const currentSignatures = (settings.signatures || []).filter(signatureOwnedByCurrentStaff);
   storeSignatureSelect.innerHTML = '<option value="">Manual signature / no digital image</option>';
-  (settings.signatures || []).forEach((signature) => {
+  currentSignatures.forEach((signature) => {
     const option = document.createElement("option");
     option.value = signature.id;
     option.textContent = signature.name;
     storeSignatureSelect.append(option);
   });
+  if (currentStaffUser?.signatureId && currentSignatures.some((signature) => signature.id === currentStaffUser.signatureId)) {
+    storeSignatureSelect.value = currentStaffUser.signatureId;
+  }
 
   if (!form.elements["order.salesRep"].value && currentStaffUser?.name) {
     form.elements["order.salesRep"].value = currentStaffUser.name;
@@ -1876,7 +1972,8 @@ async function loadStaffUsers() {
 function applyStoreRep(rep) {
   form.elements["order.storeRep"].value = rep.name || "";
   form.elements["order.storeRepTitle"].value = rep.title || "";
-  storeSignatureSelect.value = rep.signatureId || "";
+  const signature = currentStaffSignature();
+  storeSignatureSelect.value = signature ? signature.id : "";
   storeRepSelect.value = rep.id || "";
   syncSignatureSetupLink();
 }
@@ -1891,18 +1988,25 @@ function syncStoreRepSelectFromFields() {
 
 function syncSignatureSetupLink() {
   if (!storeSignatureSetupLink) return;
-  const params = new URLSearchParams({ returnTo: contractReturnUrl() });
-  const selectedRep = storeRepProfiles.find((profile) => profile.id === storeRepSelect.value)
-    || storeRepProfiles.find((profile) => profile.name === form.elements["order.storeRep"]?.value);
-  params.set("tab", "signatures");
-  if (selectedRep?.username) params.set("staff", selectedRep.username);
-  if (storeSignatureSelect.value) {
-    params.set("signature", storeSignatureSelect.value);
-  } else {
-    const repName = form.elements["order.storeRep"]?.value || currentStaffUser?.name || "";
-    if (repName) params.set("repName", repName);
+  const signature = currentStaffSignature();
+  const canUseDigitalSignature = selectedStoreRepIsCurrentStaff();
+  if (!canUseDigitalSignature) storeSignatureSelect.value = "";
+  storeSignatureSelect.disabled = !canUseDigitalSignature;
+  const selectedSignature = canUseDigitalSignature ? signatureById(storeSignatureSelect.value) : null;
+  if (storeSignaturePreview) {
+    if (selectedSignature?.dataUrl) {
+      storeSignaturePreview.src = selectedSignature.dataUrl;
+      storeSignaturePreview.classList.remove("hidden");
+    } else {
+      storeSignaturePreview.removeAttribute("src");
+      storeSignaturePreview.classList.add("hidden");
+    }
   }
-  storeSignatureSetupLink.href = `/admin?${params.toString()}`;
+  storeSignatureSetupLink.textContent = signature ? "Replace My Signature" : "Add My Signature";
+  storeSignatureSetupLink.disabled = !canUseDigitalSignature;
+  storeSignatureSetupLink.title = canUseDigitalSignature
+    ? "Add or replace your own saved signature."
+    : "Only the selected staff user can add or apply their own signature.";
 }
 
 function setDeep(target, dottedName, value) {
@@ -2269,6 +2373,19 @@ function hasAddendumInformation() {
   return rowsFrom("payments", paymentKeys, paymentRowCount).length > 0;
 }
 
+function contractReadyForReceivedPayments() {
+  return Boolean(editState.packet?.finalizedAt || editState.packet?.status === "signed");
+}
+
+function guardReceivedPaymentInput(event) {
+  const fieldName = String(event.target?.name || "").split(".").pop();
+  if (!receivedPaymentFieldNames.has(fieldName) || contractReadyForReceivedPayments()) return;
+  event.preventDefault();
+  event.target.value = "";
+  event.target.blur();
+  showResult("<p class=\"error\">Contract must be signed by store and customer before adding received payments.</p>");
+}
+
 function updateFinalActions(target = currentSection()) {
   const panel = document.querySelector(".form-actions-panel");
   if (!panel) return;
@@ -2571,6 +2688,159 @@ function fileToDataUrl(file) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+function setContractSignatureStatus(message = "", isError = false) {
+  if (!contractSignatureStatus) return;
+  contractSignatureStatus.textContent = message;
+  contractSignatureStatus.classList.toggle("error", Boolean(isError));
+}
+
+function clearContractSignatureCanvas() {
+  if (!contractSignatureCanvas || !contractSignatureCtx) return;
+  contractSignatureCtx.clearRect(0, 0, contractSignatureCanvas.width, contractSignatureCanvas.height);
+  hasDrawnContractSignature = false;
+}
+
+function resizeContractSignatureCanvas() {
+  if (!contractSignatureCanvas || !contractSignatureCtx) return;
+  const ratio = window.devicePixelRatio || 1;
+  const rect = contractSignatureCanvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const savedImage = hasDrawnContractSignature ? contractSignatureCanvas.toDataURL("image/png") : null;
+  contractSignatureCanvas.width = Math.max(1, Math.round(rect.width * ratio));
+  contractSignatureCanvas.height = Math.max(1, Math.round(rect.height * ratio));
+  contractSignatureCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  contractSignatureCtx.lineCap = "round";
+  contractSignatureCtx.lineJoin = "round";
+  contractSignatureCtx.lineWidth = 2.6;
+  contractSignatureCtx.strokeStyle = "#1f4f6a";
+  if (savedImage) {
+    const image = new Image();
+    image.onload = () => contractSignatureCtx.drawImage(image, 0, 0, rect.width, rect.height);
+    image.src = savedImage;
+  }
+}
+
+function contractSignaturePointFromEvent(event) {
+  const rect = contractSignatureCanvas.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  };
+}
+
+function typedSignatureToDataUrl(name) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 700;
+  canvas.height = 180;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#1f2933";
+  ctx.font = "44px Segoe Script, Brush Script MT, cursive";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(name, canvas.width / 2, canvas.height / 2);
+  return canvas.toDataURL("image/png");
+}
+
+function openContractSignatureModal() {
+  if (!contractSignatureModal || !contractSignatureForm) return;
+  if (!selectedStoreRepIsCurrentStaff()) {
+    showResult("<p class=\"error\">Only the selected staff user can add or apply their own signature.</p>");
+    return;
+  }
+  const signature = currentStaffSignature();
+  contractSignatureForm.dataset.replaceSignatureId = signature?.id || "";
+  contractSignatureForm.elements.name.value = signature?.name || (currentStaffUser?.name ? `${currentStaffUser.name} signature` : "");
+  contractSignatureForm.elements.typedSignatureName.value = currentStaffUser?.name || "";
+  contractSignatureForm.elements.signatureConsent.checked = false;
+  setContractSignatureStatus(signature ? "Replacing your saved signature." : "Saving a signature for your login only.");
+  clearContractSignatureCanvas();
+  contractSignatureModal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  requestAnimationFrame(() => {
+    resizeContractSignatureCanvas();
+    contractSignatureForm.elements.typedSignatureName.focus();
+  });
+}
+
+function closeContractSignatureModal() {
+  if (!contractSignatureModal || !contractSignatureForm) return;
+  contractSignatureModal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  contractSignatureForm.reset();
+  contractSignatureForm.dataset.replaceSignatureId = "";
+  setContractSignatureStatus("");
+  clearContractSignatureCanvas();
+}
+
+async function saveContractSignature(event) {
+  event.preventDefault();
+  if (savingContractSignature || !contractSignatureForm) return;
+  if (!contractSignatureForm.elements.signatureConsent.checked) {
+    setContractSignatureStatus("Confirm this is your official staff signature before saving.", true);
+    return;
+  }
+
+  const typedSignatureName = contractSignatureForm.elements.typedSignatureName.value.trim();
+  const dataUrl = hasDrawnContractSignature
+    ? contractSignatureCanvas.toDataURL("image/png")
+    : typedSignatureName
+      ? typedSignatureToDataUrl(typedSignatureName)
+      : "";
+  if (!dataUrl) {
+    setContractSignatureStatus("Draw or type your signature before saving.", true);
+    return;
+  }
+
+  const replaceSignatureId = contractSignatureForm.dataset.replaceSignatureId || "";
+  savingContractSignature = true;
+  contractSignatureSaveButton.disabled = true;
+  contractSignatureSaveButton.textContent = replaceSignatureId ? "Replacing..." : "Saving...";
+
+  try {
+    const response = await fetch(
+      replaceSignatureId ? `/api/settings/signatures/${encodeURIComponent(replaceSignatureId)}` : "/api/settings/signatures",
+      {
+        method: replaceSignatureId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: contractSignatureForm.elements.name.value.trim() || (typedSignatureName ? `${typedSignatureName} signature` : ""),
+          dataUrl,
+        }),
+      },
+    );
+    const data = await readJsonResponse(response).catch(() => ({}));
+    if (!response.ok) {
+      setContractSignatureStatus(data.error || "Could not save signature.", true);
+      return;
+    }
+    const signatureId = data.id || replaceSignatureId;
+    settingsCache = {
+      ...(settingsCache || {}),
+      signatures: [data, ...((settingsCache?.signatures || []).filter((signature) => signature.id !== signatureId))],
+    };
+    currentStaffUser = { ...(currentStaffUser || {}), signatureId };
+    storeSignatureSelect.innerHTML = '<option value="">Manual signature / no digital image</option>';
+    const option = document.createElement("option");
+    option.value = signatureId;
+    option.textContent = data.name || "My signature";
+    storeSignatureSelect.append(option);
+    storeSignatureSelect.value = signatureId;
+    if (currentStaffUser?.name) form.elements["order.storeRep"].value = currentStaffUser.name;
+    if (currentStaffUser?.title) form.elements["order.storeRepTitle"].value = currentStaffUser.title;
+    syncSignatureSetupLink();
+    scheduleServerDraftAutosave();
+    await saveDraftNow();
+    closeContractSignatureModal();
+    showResult("<p><strong>Signature saved.</strong> Your signature is attached to this draft.</p>");
+  } finally {
+    savingContractSignature = false;
+    contractSignatureSaveButton.disabled = false;
+    contractSignatureSaveButton.textContent = contractSignatureForm.dataset.replaceSignatureId ? "Replace Signature" : "Save Signature";
+  }
 }
 
 async function sendPacketSave(url, method, payload, editReason, overrideEdit = false, allowDuplicate = false) {
@@ -3060,6 +3330,39 @@ storeRepSelect.addEventListener("change", () => {
 storeSignatureSelect.addEventListener("change", syncSignatureSetupLink);
 form.elements["order.storeRep"]?.addEventListener("input", syncSignatureSetupLink);
 form.elements["order.storeRepTitle"]?.addEventListener("input", syncSignatureSetupLink);
+storeSignatureSetupLink?.addEventListener("click", openContractSignatureModal);
+contractSignatureForm?.addEventListener("submit", saveContractSignature);
+contractSignatureCloseButton?.addEventListener("click", closeContractSignatureModal);
+contractSignatureCancelButton?.addEventListener("click", closeContractSignatureModal);
+contractSignatureClearButton?.addEventListener("click", clearContractSignatureCanvas);
+contractSignatureModal?.addEventListener("click", (event) => {
+  if (event.target === contractSignatureModal) closeContractSignatureModal();
+});
+contractSignatureCanvas?.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  drawingContractSignature = true;
+  hasDrawnContractSignature = true;
+  contractSignatureCanvas.setPointerCapture(event.pointerId);
+  const point = contractSignaturePointFromEvent(event);
+  contractSignatureCtx.beginPath();
+  contractSignatureCtx.moveTo(point.x, point.y);
+});
+contractSignatureCanvas?.addEventListener("pointermove", (event) => {
+  if (!drawingContractSignature) return;
+  const point = contractSignaturePointFromEvent(event);
+  contractSignatureCtx.lineTo(point.x, point.y);
+  contractSignatureCtx.stroke();
+});
+contractSignatureCanvas?.addEventListener("pointerup", (event) => {
+  drawingContractSignature = false;
+  contractSignatureCanvas.releasePointerCapture(event.pointerId);
+});
+contractSignatureCanvas?.addEventListener("pointercancel", () => {
+  drawingContractSignature = false;
+});
+window.addEventListener("resize", () => {
+  if (contractSignatureModal && !contractSignatureModal.classList.contains("hidden")) resizeContractSignatureCanvas();
+});
 
 function copyToInstallationAddress(sourcePrefix) {
   setAddressParts("order.install", addressPartsFromForm(sourcePrefix));
@@ -3070,6 +3373,8 @@ function copyToInstallationAddress(sourcePrefix) {
 
 copyMailingAddressButton.addEventListener("click", () => copyToInstallationAddress("customer.mailing"));
 copyBillingAddressButton.addEventListener("click", () => copyToInstallationAddress("customer.billing"));
+paymentRows?.addEventListener("focusin", guardReceivedPaymentInput);
+paymentRows?.addEventListener("beforeinput", guardReceivedPaymentInput);
 addressInputs("order.install").forEach((input) => {
   input.addEventListener("input", () => {
     delete form.elements["order.installStreet"].dataset.autoConnected;
@@ -3102,6 +3407,19 @@ estimateFileList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-estimate-file]");
   if (!button) return;
   selectEstimateFile(button.getAttribute("data-estimate-file"));
+});
+
+estimatePreviewButton?.addEventListener("click", () => {
+  const selectedFile = form.elements["estimate.selectedEstimateFile"]?.value || "";
+  if (!selectedFile) return;
+  const safeName = safeEstimateFileName(selectedFile);
+  if (!safeName) return;
+  const file = estimateFiles.find((item) => item.fileName === safeName) || {
+    fileName: safeName,
+    url: estimatePreviewUrl(safeName),
+  };
+  estimatePreview.src = `${file.url}${String(file.url).includes("#") ? "" : "#toolbar=0&navpanes=0&scrollbar=0&view=FitH"}`;
+  estimatePreview.classList.remove("hidden");
 });
 
 estimateRefreshButton.addEventListener("click", () => {

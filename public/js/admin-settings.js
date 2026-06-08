@@ -129,7 +129,6 @@ function currentStaff() {
 function canManageOwnedRecord(record) {
   const staff = currentStaff();
   const username = String(staff.username || "").toLowerCase();
-  if (staff.envAdmin || staff.canManageUsers) return true;
   if (!username) return false;
   if (String(record?.ownerUsername || "").toLowerCase() === username) return true;
   return !record?.ownerUsername && keyText(record?.name) && keyText(record.name) === keyText(staff.name || staff.username);
@@ -306,6 +305,10 @@ function renderStaffUsers() {
     button.addEventListener("click", () => {
       const user = staffUsers.find((item) => item.id === button.getAttribute("data-staff-signature"));
       if (!user) return;
+      if (!canManageOwnedRecord(staffRepProfile(user))) {
+        showResult("Each user must create or replace only their own signature.", true);
+        return;
+      }
       editStaffUser(user);
       openSignatureModal({ context: "staff", staffId: user.id });
     });
@@ -942,6 +945,10 @@ function renderSignatures() {
     button.addEventListener("click", () => {
       const user = staffUsers.find((item) => item.id === button.getAttribute("data-staff-signature-from-signature"));
       if (!user) return;
+      if (!canManageOwnedRecord(staffRepProfile(user))) {
+        showResult("Each user must create or replace only their own signature.", true);
+        return;
+      }
       switchSettingsTab("users");
       editStaffUser(user);
       openSignatureModal({ context: "staff", staffId: user.id });
@@ -967,7 +974,7 @@ function renderSignatures() {
 
 function renderStaffSignatureOptions() {
   if (!staffSignatureSelect) return;
-  const signatures = settings?.signatures || [];
+  const signatures = (settings?.signatures || []).filter(canManageOwnedRecord);
   const selected = staffSignatureSelect.value;
   staffSignatureSelect.innerHTML = '<option value="">No saved signature</option>';
   signatures.forEach((signature) => {

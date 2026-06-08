@@ -90,7 +90,6 @@ function actorUsername(actor) {
 function ownedByActor(record, actor) {
   const username = actorUsername(actor);
   if (!username) return false;
-  if (actor?.envAdmin || actor?.canManageUsers) return true;
   if (clean(record?.ownerUsername).toLowerCase() === username) return true;
   if (!record?.ownerUsername && keyText(record?.name) && keyText(record.name) === keyText(actor?.name || actor?.username)) return true;
   return false;

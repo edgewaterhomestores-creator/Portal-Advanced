@@ -334,6 +334,45 @@ function normalizeLookupKey(value) {
   return clean(value).toLowerCase().replace(/\s+/g, " ");
 }
 
+function estimateApprovalSnapshot(data = {}) {
+  const normalized = normalizeEstimateForStorage(data);
+  const lineItemSnapshot = (items = []) => items.map((item) => ({
+    label: clean(item.label),
+    amount: numberValue(item.amount),
+    taxable: Boolean(item.taxable),
+    cabinetCount: clean(item.cabinetCount),
+    unitPrice: numberValue(item.unitPrice),
+    vendorListPrice: clean(item.vendorListPrice),
+    unitCost: clean(item.unitCost),
+    costMultiplier: clean(item.costMultiplier),
+    discountPercent: clean(item.discountPercent),
+    markupPercent: clean(item.markupPercent),
+    productCode: clean(item.productCode),
+    itemType: clean(item.itemType),
+    itemDescription: clean(item.itemDescription),
+    productSupplier: clean(item.productSupplier),
+  }));
+
+  return JSON.stringify({
+    estimateNumber: clean(normalized.estimateNumber || normalized.estimateId),
+    customer: clean(normalized.customer),
+    customerStreet: clean(normalized.customerStreet),
+    customerCity: clean(normalized.customerCity),
+    customerState: clean(normalized.customerState),
+    customerZip: clean(normalized.customerZip),
+    customerPhone: clean(normalized.customerPhone),
+    customerEmail: normalizeEmailAddress(normalized.customerEmail),
+    estimateDate: clean(normalized.estimateDate),
+    supplier: clean(normalized.supplier),
+    styleDescription: clean(normalized.styleDescription),
+    installer: clean(normalized.installer),
+    notes: clean(normalized.notes),
+    salesTaxRate: salesTaxRate(normalized.salesTaxRate),
+    cabinetItems: lineItemSnapshot(normalized.cabinetItems),
+    installationItems: lineItemSnapshot(normalized.installationItems),
+  });
+}
+
 function customerRecordFromEstimate(estimate) {
   const name = clean(estimate.customer);
   if (!name) return null;
@@ -425,6 +464,8 @@ function preserveEstimateResponseFields(existing, incoming) {
     estimateStatus: clean(existing.estimateStatus) && !clean(incoming.estimateStatus) ? existing.estimateStatus : incoming.estimateStatus,
     acceptedAt: clean(incoming.acceptedAt || existing.acceptedAt),
     acceptedByName: clean(incoming.acceptedByName || existing.acceptedByName),
+    acceptedEstimateSnapshot: clean(incoming.acceptedEstimateSnapshot || existing.acceptedEstimateSnapshot),
+    acceptedEstimateSnapshotAt: clean(incoming.acceptedEstimateSnapshotAt || existing.acceptedEstimateSnapshotAt),
     declinedAt: clean(incoming.declinedAt || existing.declinedAt),
     declinedByName: clean(incoming.declinedByName || existing.declinedByName),
     declineNotes: clean(incoming.declineNotes || existing.declineNotes),
@@ -526,6 +567,8 @@ async function recordEstimateResponse(token, body, req) {
   if (action === "accept") {
     updated.acceptedAt = now;
     updated.acceptedByName = typedName;
+    updated.acceptedEstimateSnapshot = estimateApprovalSnapshot(updated);
+    updated.acceptedEstimateSnapshotAt = now;
   } else {
     updated.declinedAt = now;
     updated.declinedByName = typedName;

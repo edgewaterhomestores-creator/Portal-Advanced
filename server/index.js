@@ -1467,6 +1467,11 @@ function normalizePacketData(body) {
       estimateNumber: text(data.estimate?.estimateNumber),
       fileName: text(data.estimate?.fileName),
       selectedEstimateFile: text(data.estimate?.selectedEstimateFile),
+      estimateStatus: text(data.estimate?.estimateStatus),
+      acceptedFromEstimate: bool(data.estimate?.acceptedFromEstimate),
+      changedAfterAcceptance: bool(data.estimate?.changedAfterAcceptance),
+      approvalBypassed: bool(data.estimate?.approvalBypassed),
+      approvalBypassedAt: text(data.estimate?.approvalBypassedAt),
       dataUrl: text(data.estimate?.dataUrl),
       notes: text(data.estimate?.notes),
     },
@@ -1601,7 +1606,15 @@ function syncEstimatePageSelection(data) {
   data.sections.included = normalizeSectionSelection(data.sections?.included, data.pages.included);
 }
 
-async function applyBusinessSettings(data) {
+function signatureOwnedByActor(signature = {}, actor = {}) {
+  const username = text(actor.username).toLowerCase();
+  if (!username) return false;
+  const ownerUsername = text(signature.ownerUsername).toLowerCase();
+  if (ownerUsername) return ownerUsername === username;
+  return keyText(signature.name) && keyText(signature.name) === keyText(actor.name || actor.username);
+}
+
+async function applyBusinessSettings(data, actor = {}) {
   const settings = await loadSettings();
 
   if (!data.order.storeRep && settings.defaultStoreRep) {
@@ -1614,9 +1627,13 @@ async function applyBusinessSettings(data) {
 
   if (data.order.storeSignatureId) {
     const signature = (settings.signatures || []).find((item) => item.id === data.order.storeSignatureId);
-    if (signature) {
+    if (signatureOwnedByActor(signature, actor)) {
       data.order.storeSignatureName = signature.name;
       data.order.storeSignatureDataUrl = signature.dataUrl;
+    } else {
+      data.order.storeSignatureId = "";
+      data.order.storeSignatureName = "";
+      data.order.storeSignatureDataUrl = "";
     }
   }
 
@@ -3551,8 +3568,9 @@ app.post("/api/packets", requireAuth, async (req, res, next) => {
   try {
     const body = req.body?.data ? req.body.data : req.body;
     const allowDuplicate = bool(req.body?.allowDuplicate);
+    const actor = staffActor(req);
     const data = normalizePacketData(body);
-    await applyBusinessSettings(data);
+    await applyBusinessSettings(data, actor);
     await applySelectedEstimateAttachment(data);
     syncEstimatePageSelection(data);
     validatePacketData(data);
@@ -3570,7 +3588,6 @@ app.post("/api/packets", requireAuth, async (req, res, next) => {
 
     const id = newPacketId();
     const contractNumber = contractNumberForData(data, id);
-    const actor = staffActor(req);
     const now = new Date().toISOString();
 
     const packet = {
@@ -3657,7 +3674,7 @@ app.put("/api/packets/:id", requireAuth, async (req, res, next) => {
     }
 
     const data = normalizePacketData(req.body?.data || req.body);
-    await applyBusinessSettings(data);
+    await applyBusinessSettings(data, actor);
     await applySelectedEstimateAttachment(data);
     syncEstimatePageSelection(data);
     validatePacketData(data);
@@ -3713,6 +3730,7 @@ app.put("/api/packets/:id", requireAuth, async (req, res, next) => {
 app.post("/api/packets/:id/revisions", requireAuth, async (req, res, next) => {
   try {
     const original = await loadPacket(req.params.id);
+    const actor = staffActor(req);
 
     if (!isPacketLocked(original)) {
       return res.status(400).json({
@@ -3722,7 +3740,7 @@ app.post("/api/packets/:id/revisions", requireAuth, async (req, res, next) => {
     }
 
     const data = normalizePacketData(req.body?.data || req.body);
-    await applyBusinessSettings(data);
+    await applyBusinessSettings(data, actor);
     await applySelectedEstimateAttachment(data);
     syncEstimatePageSelection(data);
     validatePacketData(data);
@@ -3732,7 +3750,6 @@ app.post("/api/packets/:id/revisions", requireAuth, async (req, res, next) => {
     const id = newPacketId();
     const now = new Date().toISOString();
     const revisionReason = text(req.body?.reason || req.body?.revisionReason);
-    const actor = staffActor(req);
     const packet = {
       id,
       contractNumber: `${baseContractNumber}-E${revisionNumber}`,

@@ -70,6 +70,16 @@
                     <input type="hidden" id="salesTaxRate" name="salesTaxRate" value="6.5">
                 </div>
 
+                <div class="actions estimate-form-actions estimate-form-actions-top">
+                    <button type="button" data-action-proxy="saveEstimateBtn" class="btn btn-primary">Save Record</button>
+                    <button type="button" data-action-proxy="saveBackContractBtn" class="btn btn-primary hidden">Save and Back to Contract</button>
+                    <button type="button" data-action-proxy="downloadPrintBtn" class="btn btn-primary">Download / Print</button>
+                    <button type="button" data-action-proxy="emailBtn" class="btn btn-success">Email Estimate</button>
+                    <a data-action-proxy-link="toContractsBtn" class="btn btn-primary hidden" href="/portal">To Contracts</a>
+                    <button type="button" data-action-proxy="clearEstimateBtn" class="btn btn-secondary">Clear</button>
+                    <a data-action-proxy-link="cancelEstimateBtn" class="btn btn-secondary" href="/portal">Cancel</a>
+                </div>
+
                 <section class="form-section">
                     <div class="section-heading">
                         <h2>Estimate Details</h2>
@@ -194,9 +204,11 @@
                 <div class="actions">
                     <button type="button" id="saveEstimateBtn" class="btn btn-primary">Save Record</button>
                     <button type="button" id="saveBackContractBtn" class="btn btn-primary hidden">Save and Back to Contract</button>
-                    <button type="button" id="downloadPrintBtn" class="btn btn-secondary">Download / Print</button>
+                    <button type="button" id="downloadPrintBtn" class="btn btn-primary">Download / Print</button>
                     <button type="button" id="emailBtn" class="btn btn-success">Email Estimate</button>
-                    <a id="toContractsBtn" class="btn btn-secondary hidden" href="/portal">To Contracts</a>
+                    <a id="toContractsBtn" class="btn btn-primary hidden" href="/portal">To Contracts</a>
+                    <button type="button" id="clearEstimateBtn" class="btn btn-secondary">Clear</button>
+                    <a id="cancelEstimateBtn" class="btn btn-secondary" href="/portal">Cancel</a>
                 </div>
             </form>
         </main>
@@ -215,7 +227,7 @@
             <p>Choose what you'd like to do with your estimate:</p>
             <div class="modal-actions">
                 <button type="button" id="downloadEstimateBtn" class="btn btn-primary">Download</button>
-                <button type="button" id="printEstimateBtn" class="btn btn-secondary">Print</button>
+                <button type="button" id="printEstimateBtn" class="btn btn-primary">Print</button>
             </div>
         </div>
     </div>

@@ -241,14 +241,15 @@
             </label>
             <input type="hidden" name="order.storeRep" />
             <input type="hidden" name="order.storeRepTitle" />
-            <label>Store rep date<input name="order.storeRepDate" inputmode="numeric" placeholder="MM/DD/YYYY" /></label>
-            <label>Store signature image, optional
+            <label>Staff signature date<input name="order.storeRepDate" inputmode="numeric" placeholder="MM/DD/YYYY" /></label>
+            <label>My saved signature
               <select name="order.storeSignatureId" id="store-signature-select">
                 <option value="">Manual signature / no digital image</option>
               </select>
+              <img id="store-signature-preview" class="signature-preview hidden" alt="Saved signature preview" />
             </label>
             <div class="align-end">
-              <a class="button-link full-width-button" id="store-signature-setup-link" href="/admin?tab=signatures">Signature</a>
+              <button class="button-link full-width-button" id="store-signature-setup-link" type="button">Signature</button>
             </div>
             <p class="notice wide">A saved store signature image is optional. If the rep does not have one, print the document for manual signature when needed.</p>
           </div>
@@ -351,6 +352,9 @@
             <input type="hidden" name="estimate.sourcePath" />
             <input type="hidden" name="estimate.estimateStatus" />
             <input type="hidden" name="estimate.acceptedFromEstimate" />
+            <input type="hidden" name="estimate.changedAfterAcceptance" />
+            <input type="hidden" name="estimate.approvalBypassed" />
+            <input type="hidden" name="estimate.approvalBypassedAt" />
             <div class="estimate-picker wide">
               <div class="estimate-picker-controls">
                 <label>Saved estimate search<input id="estimate-file-search" type="search" autocomplete="off" placeholder="Customer, date, or filename" /></label>
@@ -358,11 +362,12 @@
               </div>
               <p id="estimate-folder-status" class="notice"></p>
               <div id="estimate-file-list" class="estimate-file-list"></div>
+              <button class="ghost hidden" id="view-estimate-preview" type="button">View attached estimate</button>
               <iframe id="estimate-preview" class="estimate-preview hidden" title="Selected estimate preview"></iframe>
             </div>
             <div class="estimate-attach-row wide">
               <label>Attach estimate PDF<input id="estimate-file" type="file" accept="application/pdf,.pdf" /></label>
-              <label>Estimate web folder or URL<input name="estimate.sourceUrl" placeholder="Optional URL" /></label>
+              <input type="hidden" name="estimate.sourceUrl" />
             </div>
             <div class="estimate-detail-row wide">
               <div class="estimate-number-stack">
@@ -508,6 +513,35 @@
         </div>
       </form>
     </main>
+
+    <div id="contract-signature-modal" class="signature-modal hidden" role="dialog" aria-modal="true" aria-labelledby="contract-signature-title">
+      <form id="contract-signature-form" class="signature-modal-card">
+        <div class="section-head">
+          <div>
+            <h2 id="contract-signature-title">Store Signature</h2>
+          </div>
+          <button class="ghost" id="contract-signature-close" type="button">Close</button>
+        </div>
+        <p id="contract-signature-status" class="notice"></p>
+        <label>Signature name<input name="name" /></label>
+        <label>Typed signature<input name="typedSignatureName" /></label>
+        <div class="store-signature-pad">
+          <div class="signature-toolbar">
+            <strong>Draw signature</strong>
+            <button class="ghost" id="contract-signature-clear" type="button">Clear</button>
+          </div>
+          <canvas id="contract-signature-canvas" width="700" height="180"></canvas>
+        </div>
+        <label class="toggle signature-consent">
+          <input name="signatureConsent" type="checkbox" required />
+          This saved mark is my official staff signature for contracts.
+        </label>
+        <div class="signature-action-bar">
+          <button class="primary" id="contract-signature-save" type="submit">Save Signature</button>
+          <button class="ghost" id="contract-signature-cancel" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
 
     <script src="/js/http.js"></script>
     <script src="/js/small-screen.js"></script>
