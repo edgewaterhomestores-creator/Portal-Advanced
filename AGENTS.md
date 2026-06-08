@@ -50,6 +50,15 @@ If the Contract Portal and InstallerPortal both need deployment, use each app's 
 
 If any deploy attempt fails or the transcript is incomplete, stop. Do not continue by trying alternate methods. Report the last completed step, the exact error, what changed, what did not change, and the rollback/backup path if known.
 
+## DBeaver Tunnel Reminder
+
+When Michelle asks for the DBeaver tunnel or says she cannot get into the database, provide the full command set:
+
+1. `ssh michelle-work@192.168.1.70`
+2. On the Linux server: `sudo grep '^DATABASE_URL=' /opt/apps/customerportal/app/.env`
+3. In a separate Windows CMD or PowerShell window, leave open: `ssh -N -L 15432:127.0.0.1:5432 michelle-work@192.168.1.70`
+4. If port `15432` is busy, use: `ssh -N -L 15433:127.0.0.1:5432 michelle-work@192.168.1.70`
+
 <!-- GLOBAL_SURGICAL_FIX_POLICY_START -->
 ## Surgical Fix Policy (Non-Negotiable)
 
