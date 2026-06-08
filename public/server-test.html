@@ -185,7 +185,7 @@
         }
 
         await checkFetch("API health", "/api/health", "\"ok\":true");
-        await checkFetch("Login page", "/login", "<html");
+        await checkFetch("Entry page", "/", "<html");
       }
 
       button.addEventListener("click", runChecks);

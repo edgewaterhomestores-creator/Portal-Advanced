@@ -149,7 +149,7 @@
     }
     if (path === "/login") {
       return {
-        title: "Store Admin Login",
+        title: "Contract Portal",
       };
     }
     if (path === "/change-password") {

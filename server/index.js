@@ -487,7 +487,7 @@ function safeStaffReturnPath(value, fallback = "") {
   return raw;
 }
 
-function staffLoginPath(req, params = {}) {
+function staffEntryPath(req, params = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value) query.set(key, value);
@@ -495,7 +495,7 @@ function staffLoginPath(req, params = {}) {
   const nextPath = safeStaffReturnPath(req.originalUrl || req.url);
   if (nextPath) query.set("next", nextPath);
   const queryText = query.toString();
-  return `/login${queryText ? `?${queryText}` : ""}`;
+  return `/${queryText ? `?${queryText}` : ""}`;
 }
 
 async function requireAuth(req, res, next) {
@@ -513,7 +513,7 @@ async function requireAuth(req, res, next) {
               timedOut: true,
             });
           }
-          return res.redirect(staffLoginPath(req, { timedOut: "1" }));
+          return res.redirect(staffEntryPath(req, { timedOut: "1" }));
         });
       }
 
@@ -535,7 +535,7 @@ async function requireAuth(req, res, next) {
       return res.status(401).json({ error: "Login required." });
     }
 
-    return res.redirect(staffLoginPath(req));
+    return res.redirect(staffEntryPath(req));
   } catch (error) {
     return next(error);
   }
@@ -1831,7 +1831,7 @@ app.get("/", async (_req, res, next) => {
 app.get("/setup", async (_req, res, next) => {
   try {
     if (await hasStaffUsers()) {
-      return res.redirect("/login");
+      return res.redirect("/");
     }
     res.sendFile(path.join(PUBLIC_DIR, "setup.html"));
   } catch (error) {
@@ -1895,7 +1895,7 @@ app.get("/login", async (_req, res, next) => {
     if (!(await hasStaffUsers())) {
       return res.redirect("/setup");
     }
-    res.sendFile(path.join(PUBLIC_DIR, "login.html"));
+    return res.redirect("/");
   } catch (error) {
     next(error);
   }
@@ -2183,7 +2183,7 @@ app.post("/api/account/password-reset/complete", async (req, res, next) => {
     res.json({
       ok: true,
       accountType: result.accountType,
-      redirect: result.accountType === "staff" ? "/login" : "/",
+      redirect: "/",
     });
   } catch (error) {
     next(error);

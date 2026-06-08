@@ -401,7 +401,7 @@ async function runSearch(query = "") {
   const searchId = ++activeSearchId;
   const response = await fetch(`/api/packets/search?q=${encodeURIComponent(query)}`);
   if (response.status === 401) {
-    window.location.href = "/login";
+    window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return;
   }
 

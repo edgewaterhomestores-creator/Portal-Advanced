@@ -530,7 +530,7 @@ async function loadPreimportStore() {
   if (!preimportCounts && !preimportRuns) return;
   const response = await fetch("/api/preimport");
   if (response.status === 401) {
-    window.location.href = "/login";
+    window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return;
   }
   const data = await readJsonResponse(response).catch(() => ({}));
@@ -1121,7 +1121,7 @@ function clearDrawnStoreSignature() {
 async function loadSettings() {
   const response = await fetch("/api/settings");
   if (response.status === 401) {
-    window.location.href = "/login";
+    window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return;
   }
   settings = await readJsonResponse(response);

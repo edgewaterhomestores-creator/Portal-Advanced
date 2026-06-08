@@ -116,7 +116,7 @@ async function loadDocumentInbox() {
   setInboxStatus("loading", "Checking document queue...", "Loading status.");
   const response = await fetch("/api/preimport");
   if (response.status === 401) {
-    window.location.href = "/login";
+    window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return;
   }
   const data = await readJsonResponse(response).catch(() => ({}));

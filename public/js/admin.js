@@ -664,7 +664,7 @@ async function loadInstallerDirectory() {
   try {
     const response = await fetch("/api/installers");
     if (response.status === 401) {
-      window.location.href = "/login";
+      window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
       return;
     }
     if (!response.ok) return;
@@ -1535,7 +1535,7 @@ async function loadEstimateFiles(query = "") {
   try {
     const response = await fetch(`/api/estimates?q=${encodeURIComponent(cleanedQuery)}`);
     if (response.status === 401) {
-      window.location.href = "/login";
+      window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
       return;
     }
     const data = await readJsonResponse(response);
@@ -1703,7 +1703,7 @@ async function loadEditPacketIfNeeded() {
 
   const response = await fetch(`/api/packets/${encodeURIComponent(request.packetId)}/admin`);
   if (response.status === 401) {
-    window.location.href = "/login";
+    window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return;
   }
 
@@ -1875,7 +1875,7 @@ function setTodayDefaults() {
 async function loadBusinessSettings() {
   const response = await fetch("/api/settings");
   if (response.status === 401) {
-    window.location.href = "/login";
+    window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return;
   }
 
@@ -1959,7 +1959,7 @@ async function loadBusinessSettings() {
 async function loadStaffUsers() {
   const response = await fetch("/api/staff-users");
   if (response.status === 401) {
-    window.location.href = "/login";
+    window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return;
   }
 
@@ -2581,7 +2581,7 @@ async function runCustomerSearch(query = "") {
   customerLookupStatus.textContent = "Searching customers...";
   const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query)}`);
   if (response.status === 401) {
-    window.location.href = "/login";
+    window.location.href = `/?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     return;
   }
 

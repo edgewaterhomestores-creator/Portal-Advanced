@@ -16,6 +16,12 @@ function redirectToPortal(data) {
   window.location.href = data.portalUrl || "/customer";
 }
 
+function requestedStaffPage() {
+  const params = new URLSearchParams(window.location.search);
+  const next = params.get("next") || "";
+  return next.startsWith("/") && !next.startsWith("//") ? next : "";
+}
+
 function clearEntryFields() {
   if (userEditedEntryField) return;
   registeredCustomerLoginForm.reset();
@@ -44,7 +50,7 @@ async function tryStaffLogin(loginName, password, reclaimExistingUser = false) {
     body: JSON.stringify({
       username: loginName,
       password,
-      next: "/portal",
+      next: requestedStaffPage() || "/portal",
       reclaimExistingUser,
     }),
   });
