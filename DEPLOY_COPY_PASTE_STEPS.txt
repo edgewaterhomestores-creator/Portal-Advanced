@@ -12,6 +12,10 @@ Working project/repo name:
 
 Portal-Advanced
 
+Git remote:
+
+git@github.com:edgewaterhomestores-creator/Portal-Advanced.git
+
 Keep the disk folder path above until a deliberate folder/repo rename is approved, because these deploy commands depend on it.
 
 The older nested copy is marked legacy:
