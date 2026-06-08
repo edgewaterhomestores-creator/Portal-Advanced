@@ -330,11 +330,9 @@ function bindDateFormatting() {
   dateInputs().forEach((input) => {
     if (input.dataset.dateFormatBound === "1") return;
     input.dataset.dateFormatBound = "1";
-    const currentValue = input.value;
-    input.type = "date";
     input.classList.add("date-input");
+    input.inputMode = "numeric";
     input.autocomplete = "off";
-    input.value = dateInputValue(currentValue);
     input.addEventListener("change", validateDateFields);
     input.addEventListener("blur", validateDateFields);
   });
