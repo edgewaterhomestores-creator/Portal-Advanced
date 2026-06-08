@@ -591,6 +591,32 @@ async function recordGeneratedPdf(result = {}) {
     }
 }
 
+function mergeServerEstimateRecord(estimate = {}) {
+    if (!estimate.estimateId) return false;
+    const index = state.savedEstimates.findIndex((item) => item.estimateId === estimate.estimateId);
+    const merged = {
+        ...(index >= 0 ? state.savedEstimates[index] : {}),
+        ...estimate
+    };
+
+    if (index >= 0) {
+        state.savedEstimates[index] = merged;
+    } else {
+        state.savedEstimates.push(merged);
+    }
+
+    if (state.currentEstimateId === estimate.estimateId || !state.currentEstimateId) {
+        state.currentEstimateId = estimate.estimateId;
+        if (estimate.estimateNumber) setValue('estimateNumber', estimate.estimateNumber);
+    }
+
+    persistLocalStore();
+    rebuildEntities();
+    renderSavedList();
+    refreshContractStartAction();
+    return true;
+}
+
 function loadLocalStore() {
     try {
         const stored = JSON.parse(localStorage.getItem(ESTIMATE_STORE_KEY) || '[]');
@@ -1894,7 +1920,7 @@ function ensureEstimateManager() {
     return modal;
 }
 
-function openEstimateManager() {
+async function openEstimateManager() {
     const modal = ensureEstimateManager();
     state.managerSelected.clear();
     modal.style.display = 'block';
@@ -1904,6 +1930,10 @@ function openEstimateManager() {
         search.focus();
     }
     renderEstimateManager();
+    if (navigator.onLine) {
+        await syncWithServer({ silent: true });
+        renderEstimateManager();
+    }
 }
 
 function closeEstimateManager() {
@@ -2475,6 +2505,12 @@ function bindDownloadAndEmail() {
             });
             const result = await response.json();
             if (result.success) {
+                const mergedEstimate = mergeServerEstimateRecord(result.estimate || {});
+                if (result.filename) {
+                    lastGeneratedEstimateFilename = result.filename || '';
+                    setCreatedEstimateFile(lastGeneratedEstimateFilename);
+                    if (!mergedEstimate) await recordGeneratedPdf(result);
+                }
                 setStatus(result.message || 'Estimate email sent successfully.', 'ready');
                 $('emailModal').style.display = 'none';
                 this.reset();

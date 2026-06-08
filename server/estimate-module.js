@@ -796,6 +796,45 @@ function loadSmtpSettings() {
   };
 }
 
+function splitEmailList(value) {
+  return clean(value)
+    .split(/[,\n;]/)
+    .map(normalizeEmailAddress)
+    .filter((email, index, list) => email && isValidEmailAddress(email) && list.indexOf(email) === index);
+}
+
+async function sendInternalEstimateCopy(transporter, smtp, { pdf, estimateData, recipientEmail, customerName, estimateNumber, formattedDate }) {
+  const recipients = splitEmailList(smtp.copyEmail).filter((email) => email !== recipientEmail);
+  if (!recipients.length) return { sent: false, reason: "No internal estimate copy recipient configured." };
+
+  await transporter.sendMail({
+    from: smtp.from,
+    to: recipients,
+    subject: `Estimate Copy ${estimateNumber ? `${estimateNumber} ` : ""}- ${customerName}`,
+    text: [
+      "Estimate copy attached.",
+      "",
+      `Customer: ${customerName}`,
+      `Customer recipient: ${recipientEmail}`,
+      `Estimate: ${estimateNumber}`,
+      `Estimate date: ${formattedDate}`,
+    ].join("\n"),
+    html: `
+      <p>Estimate copy attached.</p>
+      <p><strong>Customer:</strong> ${escapeHtml(customerName)}</p>
+      <p><strong>Customer recipient:</strong> ${escapeHtml(recipientEmail)}</p>
+      <p><strong>Estimate:</strong> ${escapeHtml(estimateNumber)}</p>
+      <p><strong>Estimate date:</strong> ${escapeHtml(formattedDate)}</p>
+    `,
+    attachments: [{
+      filename: pdf.filename,
+      path: pdf.filepath,
+    }],
+  });
+
+  return { sent: true, to: recipients };
+}
+
 function safePdfFilename(filename) {
   const base = path.basename(clean(filename)).replace(/[^a-z0-9._-]/gi, "");
   return base && base.toLowerCase().endsWith(".pdf") ? base : "";
@@ -1262,6 +1301,7 @@ function registerEstimateModule(app, { requireAuth }) {
       Object.assign(estimateData, {
         estimateId: normalizedEstimate.estimateId,
         estimateNumber: normalizedEstimate.estimateNumber,
+        updatedAt: sentAt,
         responseToken,
         responseTokenCreatedAt: clean(existingEstimate?.responseTokenCreatedAt) || sentAt,
         responseTokenSentTo: recipientEmail,
@@ -1277,7 +1317,7 @@ function registerEstimateModule(app, { requireAuth }) {
       });
       const pdf = await writeEstimatePdf(estimateData);
       estimateData.estimateEmailEvents[0].pdfFilename = pdf.filename;
-      await saveEstimatePdfMetadata(estimateData, pdf);
+      const savedEstimate = await saveEstimatePdfMetadata(estimateData, pdf);
       const formattedDate = formatDateDisplay(estimateData.estimateDate) || formatDateDisplay(new Date());
       const customerName = clean(estimateData.customer) || "Valued Customer";
       const estimateNumber = clean(estimateData.estimateNumber || estimateData.estimateId);
@@ -1293,7 +1333,6 @@ function registerEstimateModule(app, { requireAuth }) {
       await transporter.sendMail({
         from: smtp.from,
         to: recipientEmail,
-        bcc: smtp.copyEmail || undefined,
         subject: `Estimate ${estimateNumber ? `${estimateNumber} ` : ""}- ${customerName}`,
         text: [
           `Dear ${customerName},`,
@@ -1327,6 +1366,21 @@ function registerEstimateModule(app, { requireAuth }) {
         }],
       });
 
+      let internalCopy = { sent: false, reason: "No internal estimate copy recipient configured." };
+      try {
+        internalCopy = await sendInternalEstimateCopy(transporter, smtp, {
+          pdf,
+          estimateData,
+          recipientEmail,
+          customerName,
+          estimateNumber,
+          formattedDate,
+        });
+      } catch (error) {
+        console.error(`Estimate internal copy failed: ${error.message}`);
+        internalCopy = { sent: false, reason: `Internal estimate copy failed: ${error.message}` };
+      }
+
       if (smtp.notificationEmail) {
         await transporter.sendMail({
           from: smtp.from,
@@ -1348,6 +1402,10 @@ function registerEstimateModule(app, { requireAuth }) {
         documentType: "estimate",
         message: "Estimate email sent successfully.",
         estimateNumber,
+        filename: pdf.filename,
+        sha256: pdf.sha256,
+        estimate: savedEstimate,
+        internalCopy,
       });
     } catch (error) {
       next(error);
