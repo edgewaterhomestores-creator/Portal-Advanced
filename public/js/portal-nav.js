@@ -137,6 +137,14 @@
     openHelp();
   }
 
+  function refreshStaffSession() {
+    if (document.visibilityState !== "visible") return;
+    fetch(`/api/session?_=${Date.now()}`, {
+      cache: "no-store",
+      credentials: "include",
+    }).catch(() => null);
+  }
+
   function pageContext() {
     const path = window.location.pathname;
     if (path === "/") {
@@ -348,6 +356,11 @@
 
   loadNavLogo();
   loadVersionLink();
+  if (staffPage) {
+    refreshStaffSession();
+    window.setInterval(refreshStaffSession, 60000);
+    document.addEventListener("visibilitychange", refreshStaffSession);
+  }
   if (!staffPage) {
     fetch("/api/session")
       .then((response) => (response.ok ? readJsonResponse(response) : null))

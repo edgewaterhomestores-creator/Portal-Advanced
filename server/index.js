@@ -2207,6 +2207,9 @@ app.get("/api/session", async (req, res, next) => {
         });
       });
     }
+    if (req.session?.authenticated) {
+      touchStaffSession(req);
+    }
     res.json({
       authenticated: Boolean(req.session?.authenticated),
       user: req.session?.staffUser || null,
