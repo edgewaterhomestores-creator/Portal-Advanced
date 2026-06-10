@@ -92,7 +92,7 @@
       tips: [
         "Back and Forward follow browser history.",
         "Home returns to the staff dashboard when logged in, or the portal entry page when logged out.",
-        "Exit signs out when the current page has a login session.",
+        "Logout signs out when the current page has a staff login session.",
       ],
     };
   }
@@ -156,7 +156,7 @@
       return {
         title: "Change Password",
         actions: [
-          { href: "/portal", label: "Contracts Page" },
+          { href: "/contracts", label: "Contracts Page" },
         ],
       };
     }
@@ -169,7 +169,7 @@
       return {
         title: "Document Inbox",
         actions: [
-          { href: "/portal", label: "Contracts Page" },
+          { href: "/contracts", label: "Contracts Page" },
           { href: "/admin?tab=preimport", label: "Admin Tools" },
         ],
       };
@@ -178,7 +178,7 @@
       return {
         title: "Installer Photos",
         actions: [
-          { href: "/portal", label: "Contracts Page" },
+          { href: "/contracts", label: "Contracts Page" },
         ],
       };
     }
@@ -196,7 +196,7 @@
       return {
         title: "Contract Portal",
         actions: [
-          { href: "/portal", label: "Contracts Page" },
+          { href: "/contracts", label: "Contracts Page" },
         ],
       };
     }
@@ -204,7 +204,6 @@
       return {
         title: "View Contract",
         actions: [
-          { href: "/portal", label: "Contracts Page" },
           { href: "/contract/new", label: "Create Contract" },
         ],
       };
@@ -213,8 +212,7 @@
       return {
         title: "Estimate Entry",
         actions: [
-          { href: "/portal", label: "Contracts Page" },
-          { href: "/contracts", label: "View Contracts" },
+          { href: "/contracts", label: "Contracts Page" },
         ],
       };
     }
@@ -290,6 +288,7 @@
   const staffPage = isStaffPage();
   const path = window.location.pathname;
   const exitId = staffPage ? 'id="logout"' : window.location.pathname.startsWith("/customer") ? 'id="customer-logout"' : "";
+  const exitLabel = staffPage ? "Logout" : "Exit";
   const nav = document.createElement("nav");
   nav.className = `portal-nav${path === "/admin" ? " portal-nav-admin-active" : ""}`;
   nav.setAttribute("aria-label", "Portal navigation");
@@ -318,7 +317,7 @@
       ${staffPage ? `<a class="button-link portal-icon-link${path === "/admin" ? " active" : ""}" href="/admin" aria-label="Admin Menu" title="Admin Menu"><span aria-hidden="true">&#9881;</span><span>${path === "/admin" ? "Admin Menu" : "Admin"}</span></a>` : ""}
       ${context ? '<button type="button" class="ghost portal-tips-button" data-portal-tips>Show Tips</button>' : ""}
       <button type="button" class="ghost portal-help-button" data-portal-help aria-label="Help">?</button>
-      <button type="button" class="ghost" ${exitId} data-portal-exit>Exit</button>
+      <button type="button" class="ghost" ${exitId} data-portal-exit>${exitLabel}</button>
     </div>
   `;
 
@@ -353,13 +352,13 @@
       : path.startsWith("/sign/")
         ? "Exit signing and return to the portal entry page? If the packet is not finalized, signature progress will be lost."
         : staffPage
-          ? "Exit and log out of the staff portal? Unsaved page changes may be lost."
+          ? "Log out of the staff portal? Unsaved page changes may be lost."
           : "Exit to the portal entry page?";
     if (!window.confirm(message)) return;
     const logoutUrl = path.startsWith("/customer") || path.startsWith("/sign/") ? "/api/customer/logout" : path === "/" ? "" : "/api/logout";
     if (logoutUrl) {
       await fetch(logoutUrl, { method: "POST" }).catch(() => null);
     }
-    window.location.href = "/";
+    window.location.href = staffPage ? "https://edgefam.com" : "/";
   });
 }());

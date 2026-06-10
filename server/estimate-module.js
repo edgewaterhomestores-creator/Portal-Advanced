@@ -334,6 +334,72 @@ function normalizeLookupKey(value) {
   return clean(value).toLowerCase().replace(/\s+/g, " ");
 }
 
+function estimateNumberKey(estimate = {}) {
+  return normalizeLookupKey(estimate.estimateNumber || estimate.estimateId);
+}
+
+function estimateIdentityKey(estimate = {}) {
+  const numberKey = estimateNumberKey(estimate);
+  if (numberKey) return `number:${numberKey}`;
+  const idKey = normalizeLookupKey(estimate.estimateId);
+  return idKey ? `id:${idKey}` : "";
+}
+
+function compareEstimateRecency(a = {}, b = {}) {
+  return clean(a.updatedAt).localeCompare(clean(b.updatedAt))
+    || clean(a.createdAt).localeCompare(clean(b.createdAt));
+}
+
+function addEstimateByIdentity(estimatesByIdentity, estimate) {
+  if (!estimate?.estimateId) return;
+  const key = estimateIdentityKey(estimate);
+  if (!key) return;
+  const existing = estimatesByIdentity.get(key);
+  if (!existing || compareEstimateRecency(estimate, existing) >= 0) {
+    estimatesByIdentity.set(key, estimate);
+  }
+}
+
+function findEstimateByIdentity(estimates = [], estimate = {}) {
+  const incomingId = normalizeLookupKey(estimate.estimateId);
+  const incomingNumber = estimateNumberKey(estimate);
+  return estimates.find((item) => incomingId && normalizeLookupKey(item.estimateId) === incomingId)
+    || estimates.find((item) => incomingNumber && estimateNumberKey(item) === incomingNumber)
+    || null;
+}
+
+function flattenSearchValues(value, out = []) {
+  if (value === null || value === undefined) return out;
+  if (Array.isArray(value)) {
+    value.forEach((item) => flattenSearchValues(item, out));
+    return out;
+  }
+  if (typeof value === "object") {
+    Object.values(value).forEach((item) => flattenSearchValues(item, out));
+    return out;
+  }
+  out.push(String(value));
+  return out;
+}
+
+function estimateSearchText(estimate = {}) {
+  const values = flattenSearchValues(estimate);
+  const digitValues = values
+    .map((item) => String(item).replace(/\D/g, ""))
+    .filter((item) => item.length >= 3);
+  return [...values, ...digitValues].join(" ").toLowerCase();
+}
+
+function searchEstimateRecords(estimates = [], query = "", limit = 10) {
+  const normalizedQuery = clean(query).toLowerCase();
+  if (!normalizedQuery) return [];
+  return estimates
+    .filter((estimate) => estimate && !estimate.deleted)
+    .filter((estimate) => estimateSearchText(estimate).includes(normalizedQuery))
+    .sort((a, b) => clean(b.updatedAt).localeCompare(clean(a.updatedAt)))
+    .slice(0, limit);
+}
+
 function estimateApprovalSnapshot(data = {}) {
   const normalized = normalizeEstimateForStorage(data);
   const lineItemSnapshot = (items = []) => items.map((item) => ({
@@ -403,14 +469,12 @@ async function ensureEstimateDataDirs() {
 
 async function readEstimateStore() {
   await ensureEstimateDataDirs();
-  const estimatesById = new Map();
+  const estimatesByIdentity = new Map();
   let dbEstimates = [];
   if (databaseConfigured()) {
     try {
       dbEstimates = await listEstimateRecords() || [];
-      dbEstimates.forEach((estimate) => {
-        if (estimate?.estimateId) estimatesById.set(estimate.estimateId, estimate);
-      });
+      dbEstimates.forEach((estimate) => addEstimateByIdentity(estimatesByIdentity, estimate));
     } catch (error) {
       console.error(`PostgreSQL estimate list failed: ${error.message}`);
     }
@@ -419,11 +483,8 @@ async function readEstimateStore() {
   try {
     const parsed = JSON.parse(await fs.readFile(ESTIMATE_STORE_PATH, "utf8"));
     const fileEstimates = Array.isArray(parsed.estimates) ? parsed.estimates : [];
-    fileEstimates.forEach((estimate) => {
-      if (!estimate?.estimateId || estimatesById.has(estimate.estimateId)) return;
-      estimatesById.set(estimate.estimateId, estimate);
-    });
-    const estimates = [...estimatesById.values()];
+    fileEstimates.forEach((estimate) => addEstimateByIdentity(estimatesByIdentity, estimate));
+    const estimates = [...estimatesByIdentity.values()];
     if (databaseConfigured() && fileEstimates.length) {
       try {
         await saveEstimateRecords(estimates);
@@ -924,7 +985,7 @@ async function writeEstimatePdf(data, { library = true } = {}) {
 }
 
 async function saveEstimatePdfMetadata(data, pdf) {
-  const estimate = normalizeEstimateForStorage({
+  let estimate = normalizeEstimateForStorage({
     ...data,
     pdfFilename: pdf.filename,
     pdfPath: pdf.filepath,
@@ -935,7 +996,15 @@ async function saveEstimatePdfMetadata(data, pdf) {
   });
   const store = await readEstimateStore();
   const byId = new Map(store.estimates.map((item) => [item.estimateId, item]));
-  const existing = byId.get(estimate.estimateId);
+  const existing = findEstimateByIdentity(store.estimates, estimate);
+  if (existing?.estimateId && existing.estimateId !== estimate.estimateId) {
+    byId.delete(estimate.estimateId);
+    estimate = {
+      ...estimate,
+      estimateId: existing.estimateId,
+      estimateNumber: estimate.estimateNumber || existing.estimateNumber || existing.estimateId,
+    };
+  }
   byId.set(estimate.estimateId, preserveEstimateResponseFields(existing, {
     ...(existing || {}),
     ...estimate,
@@ -1141,6 +1210,22 @@ function registerEstimateModule(app, { requireAuth }) {
     res.json({ online: true, configured: true, authRequired: false });
   });
 
+  app.get("/api/estimate-module/estimates/search", requireAuth, async (req, res, next) => {
+    try {
+      const query = clean(req.query.q);
+      const limit = Math.min(25, Math.max(1, Number(req.query.limit) || 10));
+      const store = await readEstimateStore();
+      const estimates = searchEstimateRecords(store.estimates || [], query, limit);
+      res.json({
+        query,
+        count: estimates.length,
+        estimates,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get("/api/estimate-module/sync/pull", requireAuth, async (req, res, next) => {
     try {
       const since = clean(req.query.since);
@@ -1228,9 +1313,17 @@ function registerEstimateModule(app, { requireAuth }) {
       let skipped = 0;
 
       incoming.forEach((rawEstimate) => {
-        const estimate = normalizeEstimateForStorage(rawEstimate || {});
+        let estimate = normalizeEstimateForStorage(rawEstimate || {});
         if (!estimate.estimateId) return;
-        const existing = byId.get(estimate.estimateId);
+        const existing = findEstimateByIdentity([...byId.values()], estimate);
+        if (existing?.estimateId && existing.estimateId !== estimate.estimateId) {
+          byId.delete(estimate.estimateId);
+          estimate = {
+            ...estimate,
+            estimateId: existing.estimateId,
+            estimateNumber: estimate.estimateNumber || existing.estimateNumber || existing.estimateId,
+          };
+        }
         const remoteUpdatedAt = clean(existing?.updatedAt);
         const localUpdatedAt = clean(estimate.updatedAt);
         const hasConflict = existing
@@ -1338,11 +1431,11 @@ function registerEstimateModule(app, { requireAuth }) {
       validateOfficialEstimate(estimateData);
       const normalizedEstimate = normalizeEstimateForStorage(estimateData);
       const existingStore = await readEstimateStore();
-      const existingEstimate = existingStore.estimates.find((estimate) => estimate.estimateId === normalizedEstimate.estimateId);
+      const existingEstimate = findEstimateByIdentity(existingStore.estimates, normalizedEstimate);
       const responseToken = safeResponseToken(existingEstimate?.responseToken) || makeResponseToken();
       const sentAt = new Date().toISOString();
       Object.assign(estimateData, {
-        estimateId: normalizedEstimate.estimateId,
+        estimateId: existingEstimate?.estimateId || normalizedEstimate.estimateId,
         estimateNumber: normalizedEstimate.estimateNumber,
         updatedAt: sentAt,
         responseToken,

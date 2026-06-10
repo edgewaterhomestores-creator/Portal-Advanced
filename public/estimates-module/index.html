@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estimate Entry</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/estimates-module/styles.css">
+    <link rel="stylesheet" href="/css/styles.css?v=20260609-result-columns">
+    <link rel="stylesheet" href="/estimates-module/styles.css?v=20260609-result-columns">
 </head>
 <body>
     <div class="app-shell">
@@ -39,22 +39,18 @@
                         <h2>Find Estimate</h2>
                     </div>
                     <div class="search-grid">
-                        <div class="form-group">
-                            <label for="estimateSearch">Search customer, supplier, installer, or estimate</label>
-                            <input type="search" id="estimateSearch" autocomplete="off" placeholder="Start typing to find an estimate">
+                        <div class="estimate-search-control">
+                            <div class="estimate-search-actions">
+                                <button type="button" id="newEstimateBtn" class="btn btn-success compact-btn">New</button>
+                                <button type="button" id="uploadEstimatePdfBtn" class="btn btn-secondary compact-btn">Upload PDF</button>
+                                <input type="file" id="uploadEstimatePdfInput" accept="application/pdf,.pdf" hidden>
+                            </div>
+                            <div class="form-group">
+                                <label for="estimateSearch">Search customer, supplier, installer, or estimate</label>
+                                <input type="search" id="estimateSearch" autocomplete="off" placeholder="Start typing to find an estimate">
+                                <div id="estimateSearchResults" class="estimate-search-results" hidden aria-live="polite"></div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="savedEstimateList">Saved Estimates</label>
-                            <select id="savedEstimateList">
-                                <option value="">No saved estimates</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="toolbar-actions">
-                        <button type="button" id="loadEstimateBtn" class="btn btn-secondary">Load</button>
-                        <button type="button" id="newEstimateBtn" class="btn btn-secondary">New</button>
-                        <button type="button" id="deleteEstimateBtn" class="btn btn-danger">Delete</button>
-                        <button type="button" id="manageEstimatesBtn" class="btn btn-secondary">All</button>
                     </div>
                 </section>
 
@@ -224,10 +220,16 @@
         <div class="modal-content">
             <button type="button" class="close" data-modal="downloadPrint" aria-label="Close">&times;</button>
             <h2>Download / Print Estimate</h2>
-            <p>Choose what you'd like to do with your estimate:</p>
+            <p id="downloadPrintMessage">Choose what to do with this estimate.</p>
             <div class="modal-actions">
                 <button type="button" id="downloadEstimateBtn" class="btn btn-primary">Download</button>
                 <button type="button" id="printEstimateBtn" class="btn btn-primary">Print</button>
+            </div>
+            <div id="estimateCompleteActions" class="modal-actions estimate-complete-actions" hidden>
+                <button type="button" id="completeNewEstimate" class="btn btn-secondary">New Estimate</button>
+                <a id="completeReturnLink" class="btn btn-secondary" href="/portal">To Contracts</a>
+                <a id="completeHomeLink" class="btn btn-secondary" href="/portal">Cancel to Home</a>
+                <button type="button" id="downloadPrintStayBtn" class="btn btn-secondary">Stay Here</button>
             </div>
         </div>
     </div>
@@ -241,7 +243,11 @@
                     <label for="recipientEmail">Recipient Email</label>
                     <input type="email" id="recipientEmail" name="recipientEmail" autocomplete="email" required>
                 </div>
-                <button type="submit" class="btn btn-success">Send Email</button>
+                <div id="emailSendingProgress" class="email-sending-progress" hidden aria-live="polite">
+                    <div class="email-progress-label">Sending estimate email...</div>
+                    <div class="email-progress-bar" aria-hidden="true"><span></span></div>
+                </div>
+                <button type="submit" id="sendEstimateEmailBtn" class="btn btn-success">Send Email</button>
             </form>
         </div>
     </div>
@@ -252,7 +258,7 @@
     <datalist id="productList"></datalist>
 
     <script src="/js/http.js"></script>
-    <script src="/js/portal-nav.js"></script>
-    <script src="/estimates-module/script.js"></script>
+    <script src="/js/portal-nav.js?v=20260609-contracts-link"></script>
+    <script src="/estimates-module/script.js?v=20260609-result-columns"></script>
 </body>
 </html>

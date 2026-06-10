@@ -22,6 +22,32 @@ function requestedStaffPage() {
   return next.startsWith("/") && !next.startsWith("//") ? next : "";
 }
 
+async function staffSession() {
+  const response = await fetch(`/api/session?_=${Date.now()}`, {
+    credentials: "include",
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache" },
+  });
+  if (!response.ok) return {};
+  return readJsonResponse(response).catch(() => ({}));
+}
+
+async function confirmedStaffSession() {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const session = await staffSession().catch(() => ({}));
+    if (session.authenticated) return session;
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+  return {};
+}
+
+async function redirectIfStaffAlreadyLoggedIn() {
+  const session = await staffSession().catch(() => ({}));
+  if (session.authenticated) {
+    window.location.href = session.mustChangePassword ? "/change-password" : (requestedStaffPage() || "/portal");
+  }
+}
+
 function clearEntryFields() {
   if (userEditedEntryField) return;
   registeredCustomerLoginForm.reset();
@@ -45,7 +71,7 @@ clearOnLoadInputs.forEach((input) => {
 async function tryStaffLogin(loginName, password, reclaimExistingUser = false) {
   const response = await fetch("/api/login", {
     method: "POST",
-    credentials: "same-origin",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       username: loginName,
@@ -57,6 +83,11 @@ async function tryStaffLogin(loginName, password, reclaimExistingUser = false) {
 
   const data = await readJsonResponse(response).catch(() => ({}));
   if (response.ok) {
+    const session = await confirmedStaffSession();
+    if (!session.authenticated) {
+      registeredCustomerLoginError.textContent = "Staff login was accepted, but this browser did not keep the login session. Enable cookies for this site and try again.";
+      return true;
+    }
     if (Array.isArray(data.notifications) && data.notifications.length) {
       sessionStorage.setItem("edgewaterStaffNotifications", JSON.stringify(data.notifications));
     }
@@ -83,6 +114,11 @@ async function tryStaffLogin(loginName, password, reclaimExistingUser = false) {
 
   if (data.setupRequired && data.redirect) {
     window.location.href = data.redirect;
+    return true;
+  }
+
+  if (data.staffLoginAttempted || data.staffLoginStatus === "bad_password" || data.staffLoginStatus === "disabled") {
+    registeredCustomerLoginError.textContent = data.error || "Staff login failed.";
     return true;
   }
 
@@ -208,4 +244,7 @@ customerLoginForm.addEventListener("reset", () => {
 window.addEventListener("pageshow", () => {
   userEditedEntryField = false;
   window.setTimeout(clearEntryFields, 0);
+  redirectIfStaffAlreadyLoggedIn().catch(() => {});
 });
+
+redirectIfStaffAlreadyLoggedIn().catch(() => {});

@@ -40,9 +40,20 @@ Default deploy source of truth:
 
 `F:\ONGOINGPROJECTS\CUSTOMERPORTAL_NEXT\DEPLOY_COPY_PASTE_STEPS.txt`
 
+Preferred regular deploy response format:
+
+`F:\ONGOINGPROJECTS\CUSTOMERPORTAL_NEXT\.000 DEPLOY STANDARD REGULAR STEPS.md`
+
 Keep the standard sequence: package, `scp` upload, normal SSH login, extract to `~/uploads/customerportal`, verify staged files with `ls`, `rsync` with the documented excludes, `chown`, `npm ci --omit=dev`, `systemctl restart`, local `curl`, then public route checks.
 
 When giving Michelle deploy steps, command sequences, recovery steps, server steps, or other copy/paste instructions, number the steps and clearly label where each step is run, such as `Windows CMD`, `PowerShell`, or `Linux Server`. Do not give an unnumbered block of commands when there is more than one step.
+
+For a normal already-packaged deploy, use the compact four-group format Michelle approved:
+
+1. Windows CMD: change to `F:\`, upload `customerportal-upload.tgz` with `scp`, then SSH normally.
+2. Linux Server: clear/extract `~/uploads/customerportal` and verify required staged files with `ls`.
+3. Linux Server: run the two documented `rsync` commands, then ownership commands.
+4. Linux Server: run `npm ci --omit=dev` for both apps, restart services, `sleep 5`, check statuses, then run direct and public health curls.
 
 Only change filenames, paths, ports, service names, domains, or exclude rules when required for the current package/server. Before making that change, state the exact difference from the standard steps and wait for Michelle's approval unless she already explicitly instructed that exact change.
 
@@ -79,6 +90,8 @@ Applies to all agents/helpers for this project.
 ## Michelle's No Extra Additions Rule
 
 Do not add extra design, layout, content, structure, sections, helper text, filler rows, overlays, decorative lines, borders, shading, colors, advice, assumptions, or process steps unless Michelle explicitly asks for that exact thing.
+
+When a bold section/page header already makes the purpose obvious, do not add hint text or helper copy under it. Remove obvious explanatory text to save space.
 
 When Michelle asks for a fix, fix only the thing she asked to fix. Do not redesign the document, do not add new formatting systems, and do not invent additional output.
 

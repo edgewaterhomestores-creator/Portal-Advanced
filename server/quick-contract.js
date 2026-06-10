@@ -26,10 +26,10 @@ const upload = multer({
 
 const CORE_TEMPLATE_PAGES = [
   { page: 4, label: "Florida Legal Disclaimers" },
-  { page: 5, label: "Purchase Agreement 1" },
-  { page: 6, label: "Purchase Agreement 2" },
-  { page: 7, label: "Purchase Agreement 3" },
-  { page: 8, label: "Agreement Signatures" },
+  { page: 5, label: "Purchase Agreement - Page 1/4" },
+  { page: 6, label: "Purchase Agreement - Page 2/4" },
+  { page: 7, label: "Purchase Agreement - Page 3/4" },
+  { page: 8, label: "Purchase Agreement - Page 4/4" },
 ];
 
 const INITIAL_FIELDS = [
@@ -630,7 +630,7 @@ async function drawSummaryPage(pdfDoc, font, boldFont, fields, documentStatus) {
   drawWrapped(
     page,
     font,
-    "This fallback packet uses the actual core Edgewater contract pages: Florida Legal Disclaimers, Purchase Agreement 1, Purchase Agreement 2, Purchase Agreement 3, and Agreement Signatures.",
+    "This fallback packet uses the actual core Edgewater contract pages: Florida Legal Disclaimers and Purchase Agreement pages 1-4.",
     36,
     52,
     540,

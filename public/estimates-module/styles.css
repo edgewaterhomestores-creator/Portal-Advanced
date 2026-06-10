@@ -132,11 +132,97 @@ h1 {
     font-size: 1rem;
 }
 
-.form-row,
-.search-grid {
+.form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.search-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.estimate-search-control {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    align-items: start;
+}
+
+.estimate-search-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: 1.45rem;
+    margin-bottom: 0;
+}
+
+.estimate-search-control .form-group {
+    margin-bottom: 10px;
+}
+
+.estimate-search-results {
+    display: grid;
+    max-height: 220px;
+    overflow: auto;
+    border: 1px solid #cbd5de;
+    border-top: 0;
+    border-radius: 0 0 5px 5px;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.estimate-search-results[hidden] {
+    display: none;
+}
+
+.estimate-search-result,
+.estimate-search-empty {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    border: 0;
+    border-bottom: 1px solid #e3e8ee;
+    border-radius: 0;
+    background: #fff;
+    color: #17212b;
+    padding: 7px 9px;
+    text-align: left;
+    font-size: 0.84rem;
+}
+
+.estimate-search-result:last-child,
+.estimate-search-empty:last-child {
+    border-bottom: 0;
+}
+
+.estimate-search-result:hover,
+.estimate-search-result:focus {
+    background: #eef6f8;
+}
+
+.estimate-search-result strong {
+    color: #17212b;
+    font-size: 0.88rem;
+}
+
+.estimate-search-line,
+.estimate-search-empty {
+    color: #5f6f7d;
+}
+
+.estimate-search-line {
+    width: 100%;
+}
+
+.estimate-search-result.is-current {
+    background: #dff0f7;
+    box-shadow: inset 4px 0 0 #256f8f, inset 0 0 0 1px #256f8f;
+    color: #102536;
+    font-weight: 700;
 }
 
 .estimate-number-row {
@@ -181,8 +267,7 @@ h1 {
 .form-group select,
 .form-group textarea,
 .password-row input,
-#estimateSearch,
-#savedEstimateList {
+#estimateSearch {
     width: 100%;
     border: 1px solid #cbd5de;
     border-radius: 5px;
@@ -200,7 +285,6 @@ h1 {
     padding: 6px 8px;
 }
 
-.toolbar-actions,
 .actions,
 .modal-actions {
     display: flex;
@@ -225,7 +309,11 @@ h1 {
 }
 
 .estimate-form-actions-top {
-    padding: 0 0 12px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: #ffffff;
+    padding: 8px 0 10px;
     border-top: 0;
     border-bottom: 1px solid #e4e9ee;
     margin-bottom: 12px;
@@ -795,6 +883,43 @@ input[readonly] {
     margin-bottom: 15px;
 }
 
+.email-sending-progress {
+    margin: 4px 0 12px;
+}
+
+.email-progress-label {
+    color: #46535f;
+    font-size: 0.84rem;
+    font-weight: 650;
+    margin-bottom: 6px;
+}
+
+.email-progress-bar {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e4e9ee;
+}
+
+.email-progress-bar span {
+    display: block;
+    width: 42%;
+    height: 100%;
+    border-radius: inherit;
+    background: #256f8f;
+    animation: email-progress-slide 1s linear infinite;
+}
+
+@keyframes email-progress-slide {
+    0% {
+        transform: translateX(-110%);
+    }
+
+    100% {
+        transform: translateX(240%);
+    }
+}
+
 .close {
     float: right;
     border: 0;
@@ -807,6 +932,13 @@ input[readonly] {
 
 .close:hover {
     color: #17212b;
+}
+
+.btn:disabled,
+.close:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
 }
 
 .manager-toolbar {

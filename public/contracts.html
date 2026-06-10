@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>View Contracts</title>
-    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/css/styles.css?v=20260609-result-columns" />
   </head>
   <body class="records-page">
     <main class="records-shell">
@@ -12,9 +12,10 @@
 
       <section class="records-toolbar" aria-label="Search contract records">
         <form id="contract-search-form" class="records-search-form">
+          <a class="button-link records-new-action" href="/contract/new">New</a>
           <label>
             <span>Search Records</span>
-            <input name="q" autocomplete="off" placeholder="Name, phone, address, invoice, or record ID" />
+            <input name="q" autocomplete="off" placeholder="Name, phone, address, invoice, or estimate" />
           </label>
           <button class="primary" type="submit">Search</button>
         </form>
@@ -26,7 +27,7 @@
 
     <script src="/js/http.js"></script>
     <script src="/js/small-screen.js"></script>
-    <script src="/js/portal-nav.js"></script>
-    <script src="/js/contracts.js"></script>
+    <script src="/js/portal-nav.js?v=20260609-contracts-link"></script>
+    <script src="/js/contracts.js?v=20260609-result-columns"></script>
   </body>
 </html>

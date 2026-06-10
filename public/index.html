@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Edgewater Contract Portal</title>
-    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/css/styles.css?v=20260609-customer-save" />
   </head>
   <body>
     <main class="shell contract-shell">
@@ -63,10 +63,10 @@
             <button type="button" class="tab-button active" data-section-tab="estimate">Estimate</button>
             <button type="button" class="tab-button" data-section-tab="customer">Customer Info</button>
             <button type="button" class="tab-button" data-section-tab="project">Schedule / Measure</button>
-            <button type="button" class="tab-button" data-section-tab="pages">Contract Created</button>
+            <button type="button" class="tab-button" data-section-tab="pages">Contract Creation</button>
             <button type="button" class="tab-button" data-section-tab="order">Contracts / Job</button>
             <button type="button" class="tab-button" data-section-tab="payments">Split Pmts / Terms</button>
-            <button type="button" class="tab-button" data-section-tab="vendors">Vendor Payments</button>
+            <button type="button" class="tab-button" data-section-tab="vendors">Payments to Vendors</button>
             <button type="button" class="tab-button" data-section-tab="materials">Materials Received</button>
             <button type="button" class="tab-button" data-section-tab="signatures">Support / Releases</button>
             <button type="button" class="tab-button" data-section-tab="notes">Notes</button>
@@ -76,7 +76,7 @@
           <div class="contract-workspace-main">
             <section class="panel form-section hidden" data-section="pages">
           <div class="section-head">
-            <h2>Contract Created Pages</h2>
+            <h2>Contract Creation Pages</h2>
             <div class="button-row">
               <button type="button" class="ghost" id="pages-all">All later customer sections</button>
               <button type="button" class="ghost" id="pages-agreement">Initial contract set</button>
@@ -91,6 +91,10 @@
             <div>
               <h2>Step 1: Customer Information Sheet</h2>
               <p>Customer intake, contact preferences, addresses, and notes.</p>
+            </div>
+            <div class="customer-section-actions customer-section-actions-top">
+              <button class="ghost" type="button" id="customer-save-draft-top">Save</button>
+              <span class="customer-save-status" data-customer-save-status aria-live="polite"></span>
             </div>
           </div>
 
@@ -178,6 +182,7 @@
                 <button class="ghost" type="button" id="customer-clear">Clear</button>
                 <button class="ghost" type="button" id="customer-save-draft">Save</button>
                 <button class="primary" type="button" id="customer-step-done">Done</button>
+                <span class="customer-save-status" data-customer-save-status aria-live="polite"></span>
               </div>
             </div>
 
@@ -402,11 +407,12 @@
             <section class="panel form-section hidden" data-section="vendors">
           <div class="section-head">
             <div>
-              <h2>Vendor Payments</h2>
+              <h2>Payments to Vendors</h2>
               <p>Page 11 can be filled from vendor rows and, later, from attached estimate/vendor documents.</p>
             </div>
           </div>
           <p class="notice">If needed, the store rep can print this form, handwrite it, then manually enter the data here. Future: scan a completed form and let the system read/fill it.</p>
+          <p class="notice">Not stable yet. Keep paper/vendor copies and do not rely on this section as the official vendor record until Michelle has tested and approved it.</p>
           <div class="table-wrap">
             <table>
               <thead>
@@ -434,6 +440,7 @@
               <p>Condensed receiving and material details.</p>
             </div>
           </div>
+          <p class="notice">Not stable yet. Keep paper receiving copies and do not rely on this section as the official receiving record until Michelle has tested and approved it.</p>
           <p class="notice">Future: scan receiving sheets and use them to fill materials received for the matching contract/customer.</p>
           <div class="table-wrap condensed-table-wrap">
             <table>
@@ -464,6 +471,7 @@
             </div>
           </div>
           <p class="notice">These are supporting forms and releases, not the main contract signature. Use only the forms that apply to this job.</p>
+          <p class="notice">Not stable yet. Get paper copies for these release/support forms until this workflow is tested and approved.</p>
           <div class="check-grid">
             <label><input type="checkbox" name="signing.sections" value="mainAgreement" checked disabled /> Customer Material Purchase Agreement</label>
             <label><input type="checkbox" name="signing.sections" value="materialHandling" /> Chain-of-Custody Material Handling</label>
@@ -545,7 +553,7 @@
 
     <script src="/js/http.js"></script>
     <script src="/js/small-screen.js"></script>
-    <script src="/js/portal-nav.js"></script>
-    <script src="/js/admin.js"></script>
+    <script src="/js/portal-nav.js?v=20260609-contracts-link"></script>
+    <script src="/js/admin.js?v=20260609-print-page-labels"></script>
   </body>
 </html>

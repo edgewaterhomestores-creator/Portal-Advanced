@@ -106,6 +106,7 @@ function uploadMeta(upload) {
   return `
     <div class="installer-upload-meta">
       <span><strong>Store</strong> ${escapeHtml(departmentLabel(upload.storeDepartment))}</span>
+      <span><strong>Stage</strong> ${escapeHtml(upload.photoStageLabel || "Not selected")}</span>
       <span><strong>Status</strong> ${escapeHtml(statusLabel(upload.status))}</span>
       <span><strong>Photos</strong> ${escapeHtml(upload.photoCount)}</span>
       <span><strong>Uploaded</strong> ${escapeHtml(upload.uploadedAtDisplay || formatDate(upload.uploadedAt))}</span>
@@ -210,7 +211,7 @@ function updatePhotoModal() {
   photoModalCount.textContent = `${activePhotoIndex + 1} of ${files.length}`;
   photoModalImage.src = file.photoUrl;
   photoModalImage.alt = file.originalName || file.storedName || `Installer photo ${activePhotoIndex + 1}`;
-  photoModalCaption.textContent = [file.originalName || file.storedName, activePhotoUpload.uploadedAtDisplay || formatDate(activePhotoUpload.uploadedAt)]
+  photoModalCaption.textContent = [activePhotoUpload.photoStageLabel, file.originalName || file.storedName, activePhotoUpload.uploadedAtDisplay || formatDate(activePhotoUpload.uploadedAt)]
     .filter(Boolean)
     .join(" | ");
   photoModalPrev.disabled = activePhotoIndex <= 0;

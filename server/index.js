@@ -6,6 +6,7 @@ const path = require("node:path");
 const express = require("express");
 const session = require("express-session");
 const multer = require("multer");
+const { PDFDocument } = require("pdf-lib");
 const { mountQuickContractRoutes } = require("./quick-contract");
 const { publicBaseUrl } = require("./public-url");
 const { createPostgresSessionStore } = require("./session-store");
@@ -56,7 +57,6 @@ const { ensureDataDirs, generatedPath, listPackets, loadPacket, newPacketId, sav
 const {
   authenticateCustomerAccount,
   authenticateCustomerAccountByLastName,
-  authenticateStaff,
   changeCustomerPassword,
   changeStaffPassword,
   completePasswordResetWithToken,
@@ -66,6 +66,7 @@ const {
   createStaffPasswordResetToken,
   findCustomerAccountByCustomerKey,
   hasStaffUsers,
+  inspectStaffLogin,
   listStaffUsers,
   listStaffUsersForAdmin,
   popStaffNotifications,
@@ -114,6 +115,13 @@ const preimportUpload = multer({
   limits: {
     fileSize: 75 * 1024 * 1024,
     files: 20,
+  },
+});
+const estimatePdfUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 75 * 1024 * 1024,
+    files: 1,
   },
 });
 
@@ -596,6 +604,7 @@ function packetEstimateSummary(packet, { includeInternal = false } = {}) {
   return {
     available: Boolean(viewUrl || internalFolderUrl),
     estimateNumber: text(estimate.estimateNumber),
+    estimateDate: text(estimate.estimateDate),
     fileName,
     viewUrl: viewUrl || internalFolderUrl,
     sourceUrl: safeSourceUrl,
@@ -658,6 +667,54 @@ function packetPdfAccessDenied(req, res) {
   });
 }
 
+async function existingFilePath(filePath) {
+  if (!filePath) return "";
+  try {
+    await fs.access(filePath);
+    return filePath;
+  } catch (_error) {
+    return "";
+  }
+}
+
+function pdfBytesAreEncrypted(bytes) {
+  return Buffer.isBuffer(bytes) && bytes.includes(Buffer.from("/Encrypt"));
+}
+
+async function plainPdfDownloadPath(sourcePath, plainPath) {
+  const bytes = await fs.readFile(sourcePath);
+  if (!pdfBytesAreEncrypted(bytes)) return sourcePath;
+
+  const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const plainBytes = await pdfDoc.save({ useObjectStreams: false });
+  await fs.writeFile(plainPath, plainBytes);
+  return plainPath;
+}
+
+async function contractPdfDownloadPath(packet, kind) {
+  const plainPath = await existingFilePath(generatedPath(packet.id, kind, false));
+  if (plainPath) return plainPath;
+
+  if (kind === "signable") {
+    const pdf = await generatePdf(packet, "signable");
+    packet.signablePdfPath = pdf.path;
+    packet.signablePdfSha256 = pdf.sha256;
+    packet.updatedAt = new Date().toISOString();
+    await savePacket(packet);
+    return pdf.path;
+  }
+
+  const storedPath = await existingFilePath(packet.finalPdfPath);
+  if (storedPath) return plainPdfDownloadPath(storedPath, generatedPath(packet.id, "final", false));
+
+  const generatedFinalPath = await existingFilePath(generatedPath(packet.id, "final", true));
+  if (generatedFinalPath) return plainPdfDownloadPath(generatedFinalPath, generatedPath(packet.id, "final", false));
+
+  const error = new Error("Contract PDF was not found.");
+  error.status = 404;
+  throw error;
+}
+
 async function customerPackets(customer) {
   const packets = await listPackets();
   return latestPacketsByContractFamily(packets.filter((packet) => packetMatchesCustomer(packet, customer)));
@@ -690,9 +747,23 @@ function searchTextFor(value) {
 
 function splitNameParts(name) {
   const parts = text(name).split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return {
+      firstName: "",
+      lastName: parts[0] || "",
+    };
+  }
+  if (parts.length === 2) {
+    return {
+      firstName: parts[0],
+      lastName: parts[1],
+    };
+  }
+  const suffixPattern = /^(?:jr|sr|ii|iii|iv|v)\.?$/i;
+  const lastNameStart = suffixPattern.test(parts.at(-1)) ? Math.max(2, parts.length - 2) : 2;
   return {
-    firstName: parts.length > 1 ? parts.slice(0, -1).join(" ") : "",
-    lastName: parts.length > 1 ? parts.at(-1) : parts[0] || "",
+    firstName: parts.slice(0, 2).join(" "),
+    lastName: parts.slice(lastNameStart).join(" "),
   };
 }
 
@@ -1011,6 +1082,7 @@ function draftSummary(draft, req, familyInfo = null) {
     estimate: {
       available: Boolean(estimate.selectedEstimateFile || estimate.fileName),
       estimateNumber: estimate.estimateNumber || "",
+      estimateDate: estimate.estimateDate || "",
       fileName: estimate.fileName || estimate.selectedEstimateFile || "",
       viewUrl: estimate.selectedEstimateFile ? `/api/estimates/${encodeURIComponent(estimate.selectedEstimateFile)}/download` : "",
       sourcePath: estimate.sourcePath || "",
@@ -2083,6 +2155,8 @@ app.post("/api/feature-requests", async (req, res, next) => {
 
 app.get("/api/session", async (req, res, next) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
     const ttlMs = await staffSessionIdleMs();
     pruneStaffSessions(ttlMs);
     const lastSeen = Number(req.session?.staffLastSeenAt || 0);
@@ -2192,12 +2266,15 @@ app.post("/api/account/password-reset/complete", async (req, res, next) => {
 
 app.post("/api/login", async (req, res, next) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
     const username = text(req.body?.username);
     const password = text(req.body?.password);
     const nextPath = safeStaffReturnPath(req.body?.next, "/portal");
     const envAdmin = envAdminCredentials();
     const staffConfigured = await hasStaffUsers();
-    let staffUser = await authenticateStaff(username, password);
+    const staffLogin = await inspectStaffLogin(username, password);
+    let staffUser = staffLogin.ok ? staffLogin.user : null;
 
     if (!staffUser && envAdmin.configured && constantTimeEqual(username, envAdmin.username) && constantTimeEqual(password, envAdmin.password)) {
       staffUser = {
@@ -2223,7 +2300,13 @@ app.post("/api/login", async (req, res, next) => {
 
     if (!staffUser) {
       await logEvent("warn", "admin_login_failed", { request: requestMeta(req), username });
-      return res.status(401).json({ error: "Invalid login." });
+      return res.status(401).json({
+        error: staffLogin.error || "Staff login failed.",
+        staffLoginStatus: staffLogin.status || "invalid",
+        staffLoginAttempted: staffLogin.status !== "not_found",
+        username: staffLogin.username || username,
+        email: staffLogin.email || "",
+      });
     }
 
     const sessionRegistration = await registerStaffSession(req, staffUser, {
@@ -3049,6 +3132,64 @@ app.get("/api/estimates", requireAuth, async (req, res, next) => {
   }
 });
 
+function cleanUploadedEstimatePdfName(originalName) {
+  const base = path.basename(text(originalName)).replace(/[^a-z0-9._ -]/gi, "").replace(/\s+/g, " ").trim();
+  const stem = base.replace(/\.pdf$/i, "").trim() || `uploaded-estimate-${Date.now()}`;
+  return `${stem.slice(0, 90).replace(/[ ._-]+$/g, "") || "uploaded-estimate"}.pdf`;
+}
+
+async function availableEstimatePdfPath(filename) {
+  const folder = estimateFolderPath();
+  await fs.mkdir(folder, { recursive: true });
+  const parsed = path.parse(filename);
+  for (let index = 0; index < 100; index += 1) {
+    const candidate = index === 0 ? filename : `${parsed.name}-${index + 1}${parsed.ext}`;
+    const filePath = safeEstimatePath(candidate);
+    if (!filePath) continue;
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      if (error.code === "ENOENT") return { filename: candidate, filePath };
+      throw error;
+    }
+  }
+  throw new Error("Could not choose an available estimate PDF filename.");
+}
+
+app.post("/api/estimates/upload", requireAuth, estimatePdfUpload.single("estimatePdf"), async (req, res, next) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: "Choose a PDF estimate file." });
+    const originalName = text(file.originalname);
+    const isPdfName = /\.pdf$/i.test(originalName);
+    const isPdfBytes = file.buffer?.subarray(0, 4).toString("utf8") === "%PDF";
+    if (!isPdfName || !isPdfBytes) {
+      return res.status(400).json({ error: "Only PDF estimate files can be uploaded." });
+    }
+
+    const { filename, filePath } = await availableEstimatePdfPath(cleanUploadedEstimatePdfName(originalName));
+    await fs.writeFile(filePath, file.buffer, { flag: "wx" });
+    const sha256 = crypto.createHash("sha256").update(file.buffer).digest("hex");
+    await logEvent("info", "estimate_pdf_uploaded", {
+      request: requestMeta(req),
+      filename,
+      size: file.size,
+      estimateId: text(req.body?.estimateId),
+    });
+    res.status(201).json({
+      file: {
+        fileName: filename,
+        size: file.size,
+        sha256,
+        updatedAt: new Date().toISOString(),
+        url: `/api/estimates/${encodeURIComponent(filename)}/download`,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/estimates/:filename/download", requireAuth, async (req, res, next) => {
   try {
     const filePath = safeEstimatePath(req.params.filename);
@@ -3357,39 +3498,28 @@ app.get("/api/packets/search", requireAuth, async (req, res, next) => {
   try {
     const query = text(req.query.q).toLowerCase();
     const packets = await listPackets();
-    const drafts = await listContractDrafts(staffActor(req).username);
     const duplicateLookup = duplicateLookupForPackets(packets);
     const groups = contractFamilyGroups(packets);
-    const draftGroups = visibleDraftGroupsForSearch(drafts, groups);
     const matchingGroups = query
       ? groups.filter((group) => group.searchText.includes(query))
       : groups;
-    const matchingDraftGroups = query
-      ? draftGroups.filter((group) => group.searchText.includes(query))
-      : draftGroups;
-    const matchingDrafts = matchingDraftGroups
-      .slice(0, 30)
-      .map((group) => draftSummary(group.latest, req, { count: group.drafts.length }));
 
     matchingGroups.sort((a, b) => comparePacketRecency(a.latest, b.latest));
 
     const resultGroups = query ? matchingGroups.slice(0, 50) : matchingGroups;
 
     res.json({
-      totalRecords: groups.length + draftGroups.length,
+      totalRecords: groups.length,
       totalContractRecords: groups.length,
       totalPacketRecords: packets.length,
-      totalDraftRecords: draftGroups.length,
-      hiddenDraftRecords: Math.max(0, drafts.length - draftGroups.length),
+      totalDraftRecords: 0,
+      hiddenDraftRecords: 0,
       hiddenRevisionRecords: Math.max(0, packets.length - groups.length),
-      count: matchingGroups.length + matchingDraftGroups.length,
-      results: [
-        ...resultGroups.map((group) => {
-          const packet = group.latest;
-          return adminPacketSummary(packet, req, duplicateLookup.get(packet.id) || null, { count: group.packets.length });
-        }),
-        ...matchingDrafts,
-      ],
+      count: matchingGroups.length,
+      results: resultGroups.map((group) => {
+        const packet = group.latest;
+        return adminPacketSummary(packet, req, duplicateLookup.get(packet.id) || null, { count: group.packets.length });
+      }),
     });
   } catch (error) {
     next(error);
@@ -3989,6 +4119,11 @@ app.post("/api/packets/:id/verify", async (req, res, next) => {
 
     const key = customerKeyFromPacket(packet);
     const account = await findCustomerAccountByCustomerKey(key.lastNameKey, key.phoneLast4, key.emailKey);
+    const signablePdf = await generatePdf(packet, "signable");
+    packet.signablePdfPath = signablePdf.path;
+    packet.signablePdfSha256 = signablePdf.sha256;
+    packet.updatedAt = new Date().toISOString();
+    await savePacket(packet);
     res.json({
       ok: true,
       customerName: customerName(packet),
@@ -4288,9 +4423,7 @@ app.get("/api/packets/:id/download/:kind", async (req, res, next) => {
     const kind = req.params.kind === "final" ? "final" : "signable";
     if (!canViewPacketPdf(req, packet)) return packetPdfAccessDenied(req, res);
 
-    const filePath = generatedPath(packet.id, kind, true);
-
-    await fs.access(filePath);
+    const filePath = await contractPdfDownloadPath(packet, kind);
 
     const filename = contractPdfFilename(packet, { signed: kind === "final" });
     res.setHeader("Content-Type", "application/pdf");

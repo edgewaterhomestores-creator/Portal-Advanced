@@ -358,6 +358,12 @@ function lookupKeyForCustomer(record = {}) {
   return "";
 }
 
+function lookupKeyForSupplier(record = {}) {
+  const name = keyText(record.name);
+  const account = keyText(record.accountNumber);
+  return name ? `supplier:${name}:${account}` : "";
+}
+
 function linkedRecordKey(record = {}) {
   return [
     clean(record.type),
@@ -428,6 +434,38 @@ function packetCustomerRecord(packet = {}) {
   return record.key ? record : null;
 }
 
+function linkedRecordBelongsToPacket(record = {}, packetId = "") {
+  const id = clean(record.id);
+  return Boolean(packetId && (id === packetId || id.startsWith(`${packetId}:`)));
+}
+
+async function removePacketCustomerLookupLink(customer, packetId) {
+  if (!databaseConfigured() || !customer?.key || !packetId) return;
+  await ensureLookupSchema();
+  const result = await query(
+    "SELECT source_name, raw_json FROM customers WHERE lookup_key = $1",
+    [customer.key],
+  );
+  const row = result.rows[0];
+  if (!row || clean(row.source_name) !== "contract") return;
+
+  const raw = row.raw_json && typeof row.raw_json === "object" ? row.raw_json : {};
+  const linkedRecords = jsonArray(raw.linkedRecords);
+  const remaining = linkedRecords.filter((record) => !linkedRecordBelongsToPacket(record, packetId));
+
+  if (!remaining.length) {
+    await query("DELETE FROM customers WHERE lookup_key = $1 AND source_name = 'contract'", [customer.key]);
+    return;
+  }
+
+  if (remaining.length !== linkedRecords.length) {
+    await query(
+      "UPDATE customers SET raw_json = $2, updated_at = now() WHERE lookup_key = $1 AND source_name = 'contract'",
+      [customer.key, { ...raw, linkedRecords: remaining }],
+    );
+  }
+}
+
 function estimateCustomerRecord(estimate = {}) {
   const name = clean(estimate.customer);
   const split = name.split(/\s+/);
@@ -473,6 +511,32 @@ function estimateCustomerRecord(estimate = {}) {
   return record.key ? record : null;
 }
 
+function estimateSupplierRecord(estimate = {}) {
+  const name = clean(estimate.supplier);
+  if (!name) return null;
+  const estimateNumber = clean(estimate.estimateNumber || estimate.estimateId);
+  const record = {
+    id: "",
+    name,
+    contactName: "",
+    phone: "",
+    email: "",
+    website: "",
+    address: "",
+    accountNumber: "",
+    taxExemptionNumber: "",
+    categories: clean(estimate.styleDescription || "Estimate supplier"),
+    notes: estimateNumber ? `Used on estimate ${estimateNumber}.` : "Used on estimate.",
+    active: true,
+    sourceName: "estimate",
+    importedAt: clean(estimate.updatedAt || estimate.createdAt) || new Date().toISOString(),
+    importedBy: "",
+  };
+  record.key = lookupKeyForSupplier(record);
+  record.id = stableId("supplier", record.key);
+  return record.key ? record : null;
+}
+
 async function removeStaleEstimateCustomerRecords(activeEstimateCustomerKeys = new Set()) {
   if (!databaseConfigured()) return 0;
   await ensureLookupSchema();
@@ -483,6 +547,19 @@ async function removeStaleEstimateCustomerRecords(activeEstimateCustomerKeys = n
       [keys],
     )
     : await query("DELETE FROM customers WHERE source_name = 'estimate'");
+  return result.rowCount || 0;
+}
+
+async function removeStaleEstimateSupplierRecords(activeEstimateSupplierKeys = new Set()) {
+  if (!databaseConfigured()) return 0;
+  await ensureLookupSchema();
+  const keys = [...activeEstimateSupplierKeys].filter(Boolean);
+  const result = keys.length
+    ? await query(
+      "DELETE FROM suppliers WHERE source_name = 'estimate' AND lookup_key <> ALL($1::text[])",
+      [keys],
+    )
+    : await query("DELETE FROM suppliers WHERE source_name = 'estimate'");
   return result.rowCount || 0;
 }
 
@@ -668,6 +745,55 @@ async function insertSupplier(record) {
       tax_exemption_number, categories, notes, active, source_name, imported_at, imported_by, raw_json
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     ON CONFLICT (lookup_key) DO NOTHING
+    RETURNING *`,
+    [
+      record.id,
+      record.key,
+      record.name || "",
+      record.contactName || "",
+      record.phone || "",
+      record.email || "",
+      record.website || "",
+      record.address || "",
+      record.accountNumber || "",
+      record.taxExemptionNumber || "",
+      record.categories || "",
+      record.notes || "",
+      record.active !== false,
+      record.sourceName || "",
+      record.importedAt || new Date().toISOString(),
+      record.importedBy || "",
+      record,
+    ],
+  );
+  return result.rows[0] ? supplierFromRow(result.rows[0]) : null;
+}
+
+async function upsertSupplierRecord(record) {
+  if (!databaseConfigured() || !record?.key) return null;
+  await ensureLookupSchema();
+  const result = await query(
+    `INSERT INTO suppliers (
+      id, lookup_key, name, contact_name, phone, email, website, address, account_number,
+      tax_exemption_number, categories, notes, active, source_name, imported_at, imported_by, raw_json
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+    ON CONFLICT (lookup_key) DO UPDATE SET
+      name = COALESCE(NULLIF(EXCLUDED.name, ''), suppliers.name),
+      contact_name = COALESCE(NULLIF(EXCLUDED.contact_name, ''), suppliers.contact_name),
+      phone = COALESCE(NULLIF(EXCLUDED.phone, ''), suppliers.phone),
+      email = COALESCE(NULLIF(EXCLUDED.email, ''), suppliers.email),
+      website = COALESCE(NULLIF(EXCLUDED.website, ''), suppliers.website),
+      address = COALESCE(NULLIF(EXCLUDED.address, ''), suppliers.address),
+      account_number = COALESCE(NULLIF(EXCLUDED.account_number, ''), suppliers.account_number),
+      tax_exemption_number = COALESCE(NULLIF(EXCLUDED.tax_exemption_number, ''), suppliers.tax_exemption_number),
+      categories = COALESCE(NULLIF(EXCLUDED.categories, ''), suppliers.categories),
+      notes = COALESCE(NULLIF(EXCLUDED.notes, ''), suppliers.notes),
+      active = EXCLUDED.active,
+      source_name = EXCLUDED.source_name,
+      imported_at = EXCLUDED.imported_at,
+      imported_by = COALESCE(NULLIF(EXCLUDED.imported_by, ''), suppliers.imported_by),
+      updated_at = now(),
+      raw_json = EXCLUDED.raw_json
     RETURNING *`,
     [
       record.id,
@@ -919,6 +1045,12 @@ function packetDbFields(packet = {}) {
 async function savePacketRecord(packet) {
   if (!databaseConfigured() || !packet?.id) return null;
   await ensureLookupSchema();
+  const existingPacketResult = await query(
+    `SELECT packet_json FROM ${SIGNED_CONTRACTS_TABLE} WHERE id = $1`,
+    [packet.id],
+  );
+  const previousPacket = existingPacketResult.rows[0]?.packet_json || null;
+  const previousCustomer = previousPacket ? packetCustomerRecord(previousPacket) : null;
   const fields = packetDbFields(packet);
   await query(
     `INSERT INTO ${SIGNED_CONTRACTS_TABLE} (
@@ -974,6 +1106,9 @@ async function savePacketRecord(packet) {
   );
   const customer = packetCustomerRecord(packet);
   if (customer) await upsertCustomerRecord(customer);
+  if (previousCustomer && (!customer || previousCustomer.key !== customer.key)) {
+    await removePacketCustomerLookupLink(previousCustomer, packet.id);
+  }
   return packet;
 }
 
@@ -994,6 +1129,7 @@ async function listPacketRecords() {
 function estimateDbFields(estimate = {}) {
   return {
     estimateId: clean(estimate.estimateId),
+    estimateNumber: clean(estimate.estimateNumber || estimate.estimateId),
     customerName: clean(estimate.customer),
     customerPhone: clean(estimate.customerPhone),
     customerEmail: clean(estimate.customerEmail),
@@ -1061,9 +1197,18 @@ async function saveEstimateRecords(estimates = []) {
   if (!databaseConfigured()) return null;
   await ensureLookupSchema();
   const activeEstimateCustomerKeys = new Set();
+  const activeEstimateSupplierKeys = new Set();
   for (const estimate of estimates) {
     if (!estimate?.estimateId) continue;
     const fields = estimateDbFields(estimate);
+    if (fields.estimateNumber) {
+      await query(
+        `DELETE FROM estimate_records
+         WHERE estimate_id <> $1
+           AND COALESCE(NULLIF(estimate_json->>'estimateNumber', ''), estimate_json->>'estimateId') = $2`,
+        [fields.estimateId, fields.estimateNumber],
+      );
+    }
     await query(
       `INSERT INTO estimate_records (
         estimate_id, customer_name, customer_phone, customer_email, customer_address, estimate_date,
@@ -1118,12 +1263,18 @@ async function saveEstimateRecords(estimates = []) {
       activeEstimateCustomerKeys.add(customer.key);
       await upsertCustomerRecord(customer);
     }
+    const supplier = estimateSupplierRecord(estimate);
+    if (supplier) {
+      activeEstimateSupplierKeys.add(supplier.key);
+      await upsertSupplierRecord(supplier);
+    }
     for (const item of Array.isArray(estimate.cabinetItems) ? estimate.cabinetItems : []) {
       const product = productRecordFromEstimateItem(estimate, item);
       if (product) await upsertProductRecord(product);
     }
   }
   await removeStaleEstimateCustomerRecords(activeEstimateCustomerKeys);
+  await removeStaleEstimateSupplierRecords(activeEstimateSupplierKeys);
   return true;
 }
 

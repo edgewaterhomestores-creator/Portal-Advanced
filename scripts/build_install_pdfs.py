@@ -475,7 +475,7 @@ OCR_TIMEOUT_MS=180000"""
     story.append(
         code_block(
             """[Unit]
-Description=Edgewater Customer Portal
+Description=Edgewater Contracts Portal
 After=network.target postgresql.service
 
 [Service]

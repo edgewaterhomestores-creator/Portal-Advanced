@@ -10,37 +10,12 @@ const vendorEmailStatusText = document.querySelector("#vendor-email-status-text"
 const vendorEmailStatusCount = document.querySelector("#vendor-email-status-count");
 const dashboardScanVendorEmailsButton = document.querySelector("#dashboard-scan-vendor-emails");
 
-const dashboardIconMap = {
-  create: "/img/icons/add_contract.png",
-  print: "/img/icons/print.png",
-  estimate: "/img/icons/estimate.png",
-};
-
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-function dashboardIconHtml(key, fallback) {
-  const src = dashboardIconMap[key];
-  return src
-    ? `<img src="${src}" alt="" /><span class="dashboard-card-icon-fallback hidden">${escapeHtml(fallback)}</span>`
-    : `<span class="dashboard-card-icon-fallback">${escapeHtml(fallback)}</span>`;
-}
-
-function hydrateDashboardIcons() {
-  document.querySelectorAll("[data-dashboard-icon]").forEach((slot) => {
-    slot.innerHTML = dashboardIconHtml(slot.dataset.dashboardIcon, slot.dataset.iconFallback || slot.textContent || "");
-    const image = slot.querySelector("img");
-    const fallback = slot.querySelector(".dashboard-card-icon-fallback");
-    image?.addEventListener("error", () => {
-      image.remove();
-      fallback?.classList.remove("hidden");
-    }, { once: true });
-  });
 }
 
 function renderStaffNotifications() {
@@ -83,6 +58,35 @@ function searchText(record) {
   ].filter(Boolean).join(" ");
 }
 
+function singleLineText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function amountText(value) {
+  const raw = singleLineText(value);
+  if (!raw) return "";
+  return raw.startsWith("$") ? raw : `$${raw}`;
+}
+
+function compactMetaText(values) {
+  return values.map(singleLineText).filter(Boolean).join(" | ");
+}
+
+function dashboardResultHtml({ href, title, meta, total }) {
+  const cleanTitle = singleLineText(title);
+  const cleanMeta = singleLineText(meta);
+  const cleanTotal = singleLineText(total);
+  return `
+    <a class="dashboard-live-result" href="${href}">
+      <span class="dashboard-result-main">
+        <strong title="${escapeHtml(cleanTitle)}">${escapeHtml(cleanTitle)}</strong>
+        ${cleanTotal ? `<span class="dashboard-result-total">${escapeHtml(cleanTotal)}</span>` : ""}
+      </span>
+      ${cleanMeta ? `<span class="dashboard-result-meta" title="${escapeHtml(cleanMeta)}">${escapeHtml(cleanMeta)}</span>` : ""}
+    </a>
+  `;
+}
+
 function renderDashboardResults(type, records, query) {
   const container = document.querySelector(`[data-dashboard-results="${type}"]`);
   if (!container) return;
@@ -102,24 +106,36 @@ function renderDashboardResults(type, records, query) {
       const href = record.draft && record.resumeUrl
         ? record.resumeUrl
         : `/contract/${encodeURIComponent(record.id)}/edit`;
-      return `
-        <a class="dashboard-live-result" href="${href}">
-          <strong>${escapeHtml(record.customerName || record.contractNumber || "Contract")}</strong>
-          <span>${escapeHtml([record.contractNumber, record.installAddress, record.customerPhone].filter(Boolean).join(" | "))}</span>
-        </a>
-      `;
+      return dashboardResultHtml({
+        href,
+        title: record.customerName || record.contractNumber || "Contract",
+        meta: compactMetaText([
+          record.installAddress,
+          record.customerEmail,
+          record.customerPhone,
+          record.estimate?.estimateNumber || record.estimateNumber || record.invoiceNumber,
+          record.estimate?.estimateDate,
+        ]),
+        total: amountText(record.invoiceAmount),
+      });
     }
 
     const estimateRef = record.estimateId || record.estimateNumber || "";
     const estimateHref = estimateRef
       ? `/estimates/new?estimateId=${encodeURIComponent(estimateRef)}`
       : `/estimates/new?q=${encodeURIComponent(cleanQuery)}`;
-    return `
-      <a class="dashboard-live-result" href="${estimateHref}">
-        <strong>${escapeHtml(record.customer || record.estimateNumber || "Estimate")}</strong>
-        <span>${escapeHtml([record.estimateNumber, record.customerAddress, record.customerPhone].filter(Boolean).join(" | "))}</span>
-      </a>
-    `;
+    return dashboardResultHtml({
+      href: estimateHref,
+      title: record.customer || record.estimateNumber || "Estimate",
+      meta: compactMetaText([
+        record.customerAddress,
+        record.customerEmail,
+        record.customerPhone,
+        record.estimateNumber,
+        record.estimateDate,
+      ]),
+      total: amountText(record.grandTotalDisplay || record.grandTotal),
+    });
   }).join("");
 }
 
@@ -214,7 +230,6 @@ async function runDashboardSearch(form) {
 }
 
 async function loadDashboard() {
-  hydrateDashboardIcons();
   renderStaffNotifications();
   loadVendorEmailStatus().catch(() => setVendorEmailStatus("error", "Could not check vendor document queue.", "Error"));
 

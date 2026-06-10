@@ -61,6 +61,8 @@ const customerLookupResults = document.querySelector("#customer-lookup-results")
 const selectedCustomerPanel = document.querySelector("#selected-customer-panel");
 const customerClearButton = document.querySelector("#customer-clear");
 const customerSaveDraftButton = document.querySelector("#customer-save-draft");
+const customerSaveDraftTopButton = document.querySelector("#customer-save-draft-top");
+const customerSaveStatusNodes = document.querySelectorAll("[data-customer-save-status]");
 const workflowClearButton = document.querySelector("#workflow-clear");
 const workflowSaveDraftButton = document.querySelector("#workflow-save-draft");
 const workflowChangeCustomerButton = document.querySelector("#workflow-change-customer");
@@ -423,10 +425,10 @@ const pageLabels = [
   { id: "quickMeasurement", page: 2, label: "Quick Measurement Form" },
   { id: "salesEstimate", page: 3, label: "Sales Estimate" },
   { id: "legalDisclaimers", page: 4, label: "Florida Legal Disclaimers" },
-  { id: "purchaseAgreement1", page: 5, label: "Purchase Agreement 1" },
-  { id: "purchaseAgreement2", page: 6, label: "Purchase Agreement 2" },
-  { id: "purchaseAgreement3", page: 7, label: "Purchase Agreement 3" },
-  { id: "agreementSignatures", page: 8, label: "Agreement Signatures" },
+  { id: "purchaseAgreement1", page: 5, label: "Purchase Agreement - Page 1/4" },
+  { id: "purchaseAgreement2", page: 6, label: "Purchase Agreement - Page 2/4" },
+  { id: "purchaseAgreement3", page: 7, label: "Purchase Agreement - Page 3/4" },
+  { id: "agreementSignatures", page: 8, label: "Purchase Agreement - Page 4/4" },
   { id: "splitPaymentAddendum", page: 9, label: "Split Payment Addendum" },
   { id: "acknowledgementsReceipts", page: 10, label: "POS Acknowledgements / Receipts" },
   { id: "vendorJobOrders", page: 11, label: "Job Orders to Vendors" },
@@ -1351,8 +1353,13 @@ function splitCustomerName(name = "") {
   }
   const parts = value.split(/\s+/).filter(Boolean);
   if (parts.length === 1) return { firstName: "", lastName: parts[0] };
-  const lastName = parts.pop();
-  return { firstName: parts.join(" "), lastName };
+  if (parts.length === 2) return { firstName: parts[0], lastName: parts[1] };
+  const suffixPattern = /^(?:jr|sr|ii|iii|iv|v)\.?$/i;
+  const lastNameStart = suffixPattern.test(parts.at(-1)) ? Math.max(2, parts.length - 2) : 2;
+  return {
+    firstName: parts.slice(0, 2).join(" "),
+    lastName: parts.slice(lastNameStart).join(" "),
+  };
 }
 
 function setFieldValueIfPresent(name, value, { onlyIfBlank = false } = {}) {
@@ -1421,7 +1428,6 @@ function applyEstimateDataToContract(estimate = {}) {
   if (estimateAddress) {
     setAddressFieldsFromValue("order.install", estimateAddress);
     if (!addressStringFromForm("customer.mailing")) setAddressFieldsFromValue("customer.mailing", estimateAddress);
-    if (!addressStringFromForm("customer.billing")) setAddressFieldsFromValue("customer.billing", estimateAddress);
   }
 
   formatPhoneInputs();
@@ -1454,7 +1460,10 @@ function applyEstimateParamsToContract(params) {
     setFieldValueIfPresent("estimate.approvalBypassed", "true");
     setFieldValueIfPresent("estimate.approvalBypassedAt", params.get("estimateApprovalBypassedAt") || new Date().toISOString());
     const notes = form.elements["estimate.notes"];
-    const bypassNote = "Store bypassed changed-estimate approval to start this contract.";
+    const bypassNote = params.get("estimateApprovalBypassedReason")
+      || (changedAfterAcceptance
+        ? "Store bypassed changed-estimate approval to start this contract."
+        : "Store attached estimate before customer acceptance.");
     if (notes && !notes.value.includes(bypassNote)) {
       notes.value = [notes.value.trim(), bypassNote].filter(Boolean).join("\n");
     }
@@ -1462,7 +1471,6 @@ function applyEstimateParamsToContract(params) {
   if (estimateAddress) {
     setAddressFieldsFromValue("order.install", estimateAddress);
     if (!addressStringFromForm("customer.mailing")) setAddressFieldsFromValue("customer.mailing", estimateAddress);
-    if (!addressStringFromForm("customer.billing")) setAddressFieldsFromValue("customer.billing", estimateAddress);
   }
   formatPhoneInputs();
   syncBillingAddressFromMailing();
@@ -2176,6 +2184,14 @@ function setDraftStatus(message, status = "") {
   else delete draftStatus.dataset.status;
 }
 
+function setCustomerSaveStatus(message = "", status = "") {
+  customerSaveStatusNodes.forEach((node) => {
+    node.textContent = message;
+    if (status) node.dataset.status = status;
+    else delete node.dataset.status;
+  });
+}
+
 function saveDraftSnapshot() {
   try {
     const storageKey = draftStorageKey();
@@ -2268,6 +2284,49 @@ async function saveDraftNow() {
   await saveInstallerNameToDirectory(formFieldValue("order.installerName"));
   window.clearTimeout(serverDraftTimer);
   return saveServerDraftSnapshot();
+}
+
+async function preserveEstimateAttachmentForSave(payload) {
+  const estimateFile = estimateFileInput.files[0];
+  if (estimateFile) {
+    payload.estimate.selectedEstimateFile = "";
+    payload.estimate.dataUrl = await fileToDataUrl(estimateFile);
+    payload.estimate.fileName = payload.estimate.fileName || estimateFile.name;
+  } else if (editState.loadedVersionData) {
+    payload.estimate.dataUrl = editState.loadedVersionData.estimate?.dataUrl || "";
+    payload.estimate.selectedEstimateFile = payload.estimate.selectedEstimateFile || editState.loadedVersionData.estimate?.selectedEstimateFile || "";
+  } else if (!selectedEstimateFileChanged(payload) && editState.packet?.data?.estimate?.dataUrl) {
+    payload.estimate.dataUrl = editState.packet.data.estimate.dataUrl;
+  }
+  syncEstimatePagePayload(payload);
+}
+
+async function saveExistingPacketDraftNow() {
+  if (!editState.packetId || editState.revision || editState.lockBlocked) return false;
+
+  const payload = collectPayload();
+  await saveInstallerNameToDirectory(payload.order.installerName);
+  await preserveEstimateAttachmentForSave(payload);
+
+  const editReason = editReasonInput?.value.trim() || "";
+  const { response, data } = await sendPacketSave(
+    `/api/packets/${encodeURIComponent(editState.packetId)}`,
+    "PUT",
+    payload,
+    editReason,
+  );
+
+  if (!response.ok) {
+    throw new Error(data.detail || data.error || "Could not save contract draft.");
+  }
+
+  clearBrowserDraftSnapshots();
+  lastServerDraftSerialized = "";
+  editState.packet = data;
+  editState.loadedVersionData = null;
+  renderOwnerTransfer(data);
+  renderEditHistory(data);
+  return true;
 }
 
 function restoreDraftSnapshotIfNeeded() {
@@ -3225,7 +3284,7 @@ pagesAgreement.addEventListener("click", () => {
 
 logoutButton.addEventListener("click", async () => {
   await fetch("/api/logout", { method: "POST" });
-  window.location.href = "/";
+  window.location.href = "https://edgefam.com";
 });
 
 exitNoSaveButton.addEventListener("click", confirmExitWithoutSaving);
@@ -3235,14 +3294,39 @@ transferOwnerButton.addEventListener("click", transferOwner);
 customerClearButton.addEventListener("click", clearCustomerInfo);
 workflowClearButton?.addEventListener("click", clearCustomerInfo);
 
-customerSaveDraftButton.addEventListener("click", async () => {
-  await saveDraftNow();
-  showResult(`
-    <p><strong>Draft saved.</strong></p>
-    <p>Continue through the steps. Packet generation becomes available on the final Notes step.</p>
-  `);
-});
-workflowSaveDraftButton?.addEventListener("click", () => customerSaveDraftButton.click());
+async function saveCustomerDraft(button) {
+  const buttons = [customerSaveDraftButton, customerSaveDraftTopButton, workflowSaveDraftButton].filter(Boolean);
+  const originalText = button?.textContent || "";
+  buttons.forEach((item) => {
+    item.disabled = true;
+  });
+  if (button) button.textContent = "Saving...";
+  setCustomerSaveStatus("Saving...", "");
+
+  try {
+    const savedExistingPacket = await saveExistingPacketDraftNow();
+    if (savedExistingPacket) {
+      setCustomerSaveStatus(`Contract draft saved ${draftTimeText()}.`, "saved");
+    } else {
+      const savedToServer = await saveDraftNow();
+      setCustomerSaveStatus(
+        savedToServer ? `Customer info saved ${draftTimeText()}.` : "Saved in this browser. Server save did not finish.",
+        savedToServer ? "saved" : "warning",
+      );
+    }
+  } catch (error) {
+    setCustomerSaveStatus(error.message || "Save failed.", "error");
+  } finally {
+    buttons.forEach((item) => {
+      item.disabled = false;
+    });
+    if (button) button.textContent = originalText;
+  }
+}
+
+customerSaveDraftButton.addEventListener("click", () => saveCustomerDraft(customerSaveDraftButton));
+customerSaveDraftTopButton?.addEventListener("click", () => saveCustomerDraft(customerSaveDraftTopButton));
+workflowSaveDraftButton?.addEventListener("click", () => saveCustomerDraft(workflowSaveDraftButton));
 workflowChangeCustomerButton?.addEventListener("click", changeSelectedCustomer);
 
 document.querySelectorAll("[data-segmented-select]").forEach((control) => {

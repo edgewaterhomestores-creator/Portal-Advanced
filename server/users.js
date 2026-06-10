@@ -669,6 +669,7 @@ function publicCustomerAccount(account) {
 async function authenticateStaff(username, password) {
   const store = await loadStore();
   const login = clean(username);
+  if (!login) return null;
   const loginUsername = normalizeUsername(login);
   const loginEmail = normalizeEmail(login);
   const user = store.staff.find((item) => (
@@ -679,6 +680,61 @@ async function authenticateStaff(username, password) {
   user.lastLoginAt = new Date().toISOString();
   await saveStore(store);
   return publicStaffUser(user);
+}
+
+async function inspectStaffLogin(username, password) {
+  const store = await loadStore();
+  const login = clean(username);
+  if (!login) {
+    return {
+      ok: false,
+      status: "missing_login",
+      error: "Enter a staff username or email.",
+    };
+  }
+
+  const loginUsername = normalizeUsername(login);
+  const loginEmail = normalizeEmail(login);
+  const user = store.staff.find((item) => (
+    normalizeUsername(item.username) === loginUsername
+    || (loginEmail && normalizeEmail(item.email) === loginEmail)
+  ));
+
+  if (!user) {
+    return {
+      ok: false,
+      status: "not_found",
+      error: "No staff user was found for that username or email.",
+    };
+  }
+
+  if (user.disabled) {
+    return {
+      ok: false,
+      status: "disabled",
+      error: "That staff account is disabled.",
+      username: user.username,
+      email: user.email,
+    };
+  }
+
+  if (!(await verifyPassword(password, user.passwordHash))) {
+    return {
+      ok: false,
+      status: "bad_password",
+      error: "The staff password is not correct.",
+      username: user.username,
+      email: user.email,
+    };
+  }
+
+  user.lastLoginAt = new Date().toISOString();
+  await saveStore(store);
+  return {
+    ok: true,
+    status: "ok",
+    user: publicStaffUser(user),
+  };
 }
 
 async function popStaffNotifications(username) {
@@ -882,6 +938,7 @@ module.exports = {
   findCustomerAccountByCustomerKey,
   hasStaffUsers,
   hashPassword,
+  inspectStaffLogin,
   listStaffUsers,
   listStaffUsersForAdmin,
   loadStore,

@@ -33,6 +33,22 @@ function formatDate(value) {
   return `${dateText}, ${timeText}`;
 }
 
+function singleLineText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function amountText(value) {
+  const raw = singleLineText(value);
+  if (!raw) return "";
+  return raw.startsWith("$") ? raw : `$${raw}`;
+}
+
+function resultCellHtml(value, className, { strong = false } = {}) {
+  const text = singleLineText(value);
+  const content = strong ? `<strong>${escapeHtml(text)}</strong>` : escapeHtml(text);
+  return `<span class="result-cell ${className}" title="${escapeHtml(text)}">${content}</span>`;
+}
+
 function statusLabel(value) {
   if (value === "draft") return "Autosaved draft";
   if (value === "completed") return "Completed";
@@ -85,14 +101,6 @@ function sortByFilingName(a, b) {
     || String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || ""));
 }
 
-function customerLinkEmailLabel(record) {
-  if (record.draft) return "Not sent yet";
-  if (record.customerLinkEmail?.sent) {
-    return `Sent to ${record.customerLinkEmail.to || record.customerEmail || "customer"}`;
-  }
-  return record.customerLinkEmail?.reason || "Not sent";
-}
-
 function estimateLabel(record) {
   const estimate = record.estimate || {};
   return estimate.estimateNumber || estimate.fileName || (estimate.available ? "Estimate attached" : "");
@@ -105,18 +113,8 @@ function duplicateWarningHtml(record) {
   return `
     <p class="duplicate-warning">
       <span><strong>Possible duplicate:</strong> Same customer/invoice as ${others} other record${others === 1 ? "" : "s"}.</span>
-      <em>Compare Record ID and Created time before sending.</em>
+      <em>Compare customer, address, and estimate before sending.</em>
     </p>
-  `;
-}
-
-function recordMetaHtml(label, value) {
-  if (!value) return "";
-  return `
-    <div>
-      <dt>${escapeHtml(label)}</dt>
-      <dd>${escapeHtml(value || "Not listed")}</dd>
-    </div>
   `;
 }
 
@@ -147,6 +145,18 @@ function recordMenuHtml(record, locked) {
   `;
 }
 
+function resultLineHtml(record) {
+  return [
+    resultCellHtml(fileName(record), "result-name", { strong: true }),
+    resultCellHtml(record.installAddress, "result-address"),
+    resultCellHtml(record.customerEmail, "result-email"),
+    resultCellHtml(record.customerPhone, "result-phone"),
+    resultCellHtml(estimateLabel(record) || record.invoiceNumber, "result-doc"),
+    resultCellHtml(record.estimate?.estimateDate, "result-date"),
+    resultCellHtml(amountText(record.invoiceAmount), "result-total"),
+  ].join("");
+}
+
 function resultHtml(record) {
   const locked = Boolean(record.locked);
 
@@ -155,24 +165,9 @@ function resultHtml(record) {
       <div class="contract-record-layout">
         <div class="contract-record-main">
           <div class="contract-record-heading">
-            <div class="contract-record-title">
-              <h2>${escapeHtml(fileName(record))}</h2>
-              <p>${contractLabel(record)} ${record.invoiceNumber ? `- Invoice ${escapeHtml(record.invoiceNumber)}` : ""}</p>
-            </div>
+            <p class="contract-record-line search-result-grid">${resultLineHtml(record)}</p>
             <span class="record-status${record.draft ? " draft-status" : ""}">${statusLabel(record.status)}</span>
           </div>
-          <dl class="record-metadata">
-            ${recordMetaHtml("Record ID", record.id)}
-            ${recordMetaHtml("Phone", record.customerPhone)}
-            ${recordMetaHtml("Email", record.customerEmail)}
-            ${recordMetaHtml("Install Address", record.installAddress)}
-            ${recordMetaHtml("Amount", record.invoiceAmount)}
-            ${recordMetaHtml("Created", formatDate(record.createdAt))}
-            ${recordMetaHtml("Updated", formatDate(record.updatedAt))}
-            ${recordMetaHtml("Estimate", estimateLabel(record))}
-            ${record.hiddenFamilyRecordCount ? recordMetaHtml("History", `${record.familyRecordCount} edits/versions; latest shown`) : ""}
-            ${recordMetaHtml("Link Email", customerLinkEmailLabel(record))}
-          </dl>
           ${record.draft ? '<p class="notice">This is an autosaved draft, not a generated packet yet.</p>' : duplicateWarningHtml(record)}
           ${record.lockReason ? `<p class="notice">${escapeHtml(record.lockReason)}</p>` : ""}
           <div class="contract-detail hidden" data-contract-detail="${escapeHtml(record.id)}"></div>

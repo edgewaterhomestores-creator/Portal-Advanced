@@ -80,7 +80,7 @@
             </label>
             <div class="result-actions">
               <button type="button" id="review-modal-cancel">Go back</button>
-              <button type="button" id="review-modal-save" class="primary" disabled>Confirm and unlock signature</button>
+              <button type="button" id="review-modal-save" class="primary" disabled>Continue to signatures</button>
             </div>
           </section>
         </div>
@@ -96,9 +96,18 @@
         <form id="sign-form" class="hidden">
           <div id="section-list" class="signature-list"></div>
 
+          <input type="hidden" name="printedName" required />
+          <input type="hidden" name="customerInitials" required />
+
+          <section class="signature-list">
+            <strong>Customer signature</strong>
+            <p id="customer-signature-summary">Enter printed name, initials, and signature.</p>
+            <div class="result-actions">
+              <button type="button" id="open-customer-signature" class="primary">Customer Signature</button>
+            </div>
+          </section>
+
           <div class="grid">
-            <label>Printed name<input name="printedName" required /></label>
-            <label>Initials<input name="customerInitials" maxlength="5" required /></label>
             <label class="wide">Notes<textarea name="customerNotes" rows="4"></textarea></label>
           </div>
 
@@ -119,16 +128,36 @@
             <label class="stacked-field">Social media name/profile <input name="socialMediaProfile" autocomplete="off" placeholder="@name or profile URL" /></label>
           </section>
 
-          <div class="signature-box">
-            <div class="signature-toolbar">
-              <strong>Signature</strong>
-              <button type="button" class="ghost" id="clear-signature">Clear</button>
-            </div>
-            <canvas id="signature-canvas" width="900" height="260"></canvas>
+          <div class="signature-action-bar">
+            <button class="primary full" type="submit">Save and Confirm Signatures</button>
           </div>
 
-          <div class="signature-action-bar">
-            <button class="primary full" type="submit">Finalize signed PDF</button>
+          <div id="customer-signature-modal" class="signature-modal hidden" role="dialog" aria-modal="true" aria-labelledby="customer-signature-title">
+            <section class="signature-modal-card">
+              <div class="section-head">
+                <div>
+                  <h2 id="customer-signature-title">Customer Signature</h2>
+                  <p>Printed name and initials will be applied to the printed signature and initial areas of the contract.</p>
+                </div>
+                <button class="ghost" id="customer-signature-close" type="button">Close</button>
+              </div>
+              <p id="customer-signature-status" class="notice"></p>
+              <div class="grid">
+                <label>Printed name<input id="customer-signature-printed-name" autocomplete="name" /></label>
+                <label>Initials<input id="customer-signature-initials" maxlength="5" autocomplete="off" /></label>
+              </div>
+              <div class="signature-box">
+                <div class="signature-toolbar">
+                  <strong>Draw signature</strong>
+                  <button type="button" class="ghost" id="clear-signature">Clear</button>
+                </div>
+                <canvas id="signature-canvas" width="900" height="260" tabindex="0"></canvas>
+              </div>
+              <div class="signature-action-bar">
+                <button class="primary" id="customer-signature-save" type="button">Save Signature</button>
+                <button class="ghost" id="customer-signature-cancel" type="button">Cancel</button>
+              </div>
+            </section>
           </div>
         </form>
       </section>
@@ -138,9 +167,9 @@
 
     <script src="/js/http.js"></script>
     <script src="/js/small-screen.js"></script>
-    <script src="/js/portal-nav.js"></script>
-    <script src="/js/password-toggle.js"></script>
+    <script src="/js/portal-nav.js?v=20260609-contracts-link"></script>
+    <script src="/js/password-toggle.js?v=20260608-password-toggle"></script>
     <script src="/js/public-branding.js"></script>
-    <script src="/js/sign.js"></script>
+    <script src="/js/sign.js?v=20260608-0950"></script>
   </body>
 </html>

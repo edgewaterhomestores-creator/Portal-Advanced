@@ -22,6 +22,16 @@ Import/prepopulate planning is documented in `IMPORT_PREPOPULATE_PLAN.md`. The f
 
 Security lockdown planning is documented in `SECURITY_LOCKDOWN_PLAN.md`. After the current deploy is healthy, use that checklist to lock public access to HTTPS/Nginx, keep PostgreSQL and Node private, rotate temporary secrets, verify backups, and separate future financial systems behind private staff-only access.
 
+Current priority order from Michelle, 2026-06-08:
+
+1. Stabilize and verify the current contract, estimate, customer signing, and staff login flow.
+2. Clean up customer records so one customer does not split into duplicate active records.
+3. Build installer accounts next, then group installer details under the installer account/profile.
+4. Add customer portal basics next: assigned estimates, invoices/acknowledgements, payment proof or paid status, signed contracts, and customer-visible documents. This does not need to be a full dashboard yet.
+5. Add a near-term paid-status bridge for Jamie/store staff to mark paid status, amount, and date. Native finance/invoice/payment posting stays much later.
+6. Security lockdown is vital soon before installer/customer links are broadly shared.
+7. Customer photos come after customer portal basics are stable. Receiving/vendor scan/upload/email processing comes later. UI layout cleanup is last.
+
 ## What We Have Built So Far
 
 This is a basic working portal for creating and signing customer cabinet packets.
@@ -47,6 +57,7 @@ This is a basic working portal for creating and signing customer cabinet packets
 - Addendum A/page 9 is included only when the store rep says it is needed.
 - Vendor Orders/Page 11 now has a workflow note that it can be manually entered now and later filled from attached/generated documents.
 - Material Lines/Receiving now has a workflow note for manual entry now and scan/import later.
+- Vendor, receiving, and release/support sections now show not-stable-yet notices telling staff to keep paper copies and not rely on those sections as official records until tested and approved.
 - Store employees can choose which PDF pages to include or remove.
 - Packet choices are now described as named sections, not just page numbers. Template page numbers are only the current PDF placement map.
 - The saved packet record includes stable section IDs so future attachments do not have to be identified by whatever page number they land on after the final PDF is assembled.

@@ -34,6 +34,22 @@ Current release scope guard:
 - If a contract is created without an estimate, staff can still create the contract directly.
 - If an estimate is part of the first contract flow, keep the handoff explicit so staff chooses the right path instead of accidentally sending the wrong document.
 
+Current priority order from Michelle, 2026-06-08:
+
+1. Stabilize and verify the current contract, estimate, customer signing, and staff login flow.
+2. Clean up customer records so the same customer does not split into duplicate active records when staff edits information or the customer logs in/registers.
+3. Build installer accounts next. After accounts exist, group installer details under the installer account/profile.
+4. Add basic customer portal account information next: assigned estimates, invoices/acknowledgements, payment proof or paid status, signed contracts, and customer-visible documents. This does not need to be a full dashboard yet.
+5. Add a near-term paid-status bridge so Jamie/store staff can mark paid status, paid amount, and paid date in the next few releases. Native finance/invoice/payment posting stays much later.
+6. Security lockdown is vital soon before installer/customer links are broadly shared.
+7. Customer photo upload comes after the customer portal is stable with the basic account information above.
+8. Receiving scans/uploads and vendor email/document processing come later, but should be built cleanly so vendor acknowledgements, receipts, invoices, receiving, and tracking attach to the correct customer/order.
+9. UI layout cleanup is last, after the working behavior is stable.
+
+Unstable current-use notice rule:
+
+- Receiving, vendor document/payment, release/support, and other not-yet-tested operational pages should tell staff to keep paper copies and not rely on that section as the official record until Michelle has tested and approved it.
+
 ## FUTUREUSE: build next, do not block current signing
 
 These are planned parts of the larger program.

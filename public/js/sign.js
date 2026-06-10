@@ -23,6 +23,15 @@ const reviewUnderstoodCheck = document.querySelector("#review-understood-check")
 const reviewModalCancel = document.querySelector("#review-modal-cancel");
 const reviewModalSave = document.querySelector("#review-modal-save");
 const openContractNewTab = document.querySelector("#open-contract-new-tab");
+const openCustomerSignatureButton = document.querySelector("#open-customer-signature");
+const customerSignatureSummary = document.querySelector("#customer-signature-summary");
+const customerSignatureModal = document.querySelector("#customer-signature-modal");
+const customerSignatureClose = document.querySelector("#customer-signature-close");
+const customerSignatureCancel = document.querySelector("#customer-signature-cancel");
+const customerSignatureSave = document.querySelector("#customer-signature-save");
+const customerSignatureStatus = document.querySelector("#customer-signature-status");
+const customerSignaturePrintedName = document.querySelector("#customer-signature-printed-name");
+const customerSignatureInitials = document.querySelector("#customer-signature-initials");
 const canvas = document.querySelector("#signature-canvas");
 const clearButton = document.querySelector("#clear-signature");
 const ctx = canvas.getContext("2d");
@@ -37,6 +46,7 @@ let customerEmail = "";
 let finalPdfUrl = "";
 let pdfDownloadFilename = "CONTRACT.pdf";
 let customerAccountRegistered = false;
+let signatureDetailsSaved = false;
 
 function pad2(value) {
   return String(value).padStart(2, "0");
@@ -83,6 +93,8 @@ function pointFromEvent(event) {
 canvas.addEventListener("pointerdown", (event) => {
   drawing = true;
   hasSignature = true;
+  signatureDetailsSaved = false;
+  updateCustomerSignatureSummary();
   canvas.setPointerCapture(event.pointerId);
   const point = pointFromEvent(event);
   ctx.beginPath();
@@ -104,10 +116,75 @@ canvas.addEventListener("pointerup", stopDrawing);
 canvas.addEventListener("pointercancel", stopDrawing);
 canvas.addEventListener("pointerleave", stopDrawing);
 
-clearButton.addEventListener("click", () => {
+function clearSignatureCanvas() {
   const rect = canvas.getBoundingClientRect();
   ctx.clearRect(0, 0, rect.width, rect.height);
   hasSignature = false;
+  signatureDetailsSaved = false;
+  updateCustomerSignatureSummary();
+}
+
+function setCustomerSignatureStatus(message = "", isError = false) {
+  if (!customerSignatureStatus) return;
+  customerSignatureStatus.textContent = message;
+  customerSignatureStatus.classList.toggle("error", Boolean(isError));
+}
+
+function updateCustomerSignatureSummary() {
+  if (!customerSignatureSummary) return;
+  const printedName = signForm.elements.printedName.value.trim();
+  const initials = signForm.elements.customerInitials.value.trim();
+  customerSignatureSummary.textContent = signatureDetailsSaved
+    ? `Saved: ${printedName || "Printed name"} / ${initials || "initials"}`
+    : "Enter printed name, initials, and signature.";
+}
+
+function openCustomerSignatureModal() {
+  if (!customerSignatureModal) return;
+  customerSignaturePrintedName.value = signForm.elements.printedName.value.trim();
+  customerSignatureInitials.value = signForm.elements.customerInitials.value.trim();
+  setCustomerSignatureStatus("Printed name and initials will be applied to the printed signature and initial areas of the contract.");
+  customerSignatureModal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  requestAnimationFrame(() => {
+    resizeCanvasForDisplay();
+    customerSignaturePrintedName.focus();
+  });
+}
+
+function closeCustomerSignatureModal() {
+  if (!customerSignatureModal) return;
+  customerSignatureModal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
+function saveCustomerSignatureDetails() {
+  const printedName = customerSignaturePrintedName.value.trim();
+  const initials = customerSignatureInitials.value.trim();
+  if (!printedName || !initials) {
+    setCustomerSignatureStatus("Enter printed name and initials before saving.", true);
+    return false;
+  }
+  if (!hasSignature) {
+    setCustomerSignatureStatus("Draw the customer signature before saving.", true);
+    return false;
+  }
+  signForm.elements.printedName.value = printedName;
+  signForm.elements.customerInitials.value = initials;
+  signatureDetailsSaved = true;
+  setCustomerSignatureStatus("");
+  updateCustomerSignatureSummary();
+  closeCustomerSignatureModal();
+  return true;
+}
+
+clearButton.addEventListener("click", clearSignatureCanvas);
+openCustomerSignatureButton.addEventListener("click", openCustomerSignatureModal);
+customerSignatureClose.addEventListener("click", closeCustomerSignatureModal);
+customerSignatureCancel.addEventListener("click", closeCustomerSignatureModal);
+customerSignatureSave.addEventListener("click", saveCustomerSignatureDetails);
+customerSignatureModal.addEventListener("click", (event) => {
+  if (event.target === customerSignatureModal) closeCustomerSignatureModal();
 });
 
 function setReviewState(complete) {
@@ -227,12 +304,12 @@ reviewModalSave.addEventListener("click", async () => {
     if (!response.ok) throw new Error(data.error || "Could not confirm review.");
     closeReviewConfirmModal();
     setReviewState(true);
-    signForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    openCustomerSignatureModal();
   } catch (error) {
     reviewStatus.textContent = error.message;
     updateReviewConfirmButton();
   } finally {
-    reviewModalSave.textContent = "Confirm and unlock signature";
+    reviewModalSave.textContent = "Continue to signatures";
     reviewModalSave.disabled = !reviewUnderstoodCheck.checked;
   }
 });
@@ -287,6 +364,9 @@ verifyForm.addEventListener("submit", async (event) => {
     pdfDownloadFilename = data.downloadFilename || pdfDownloadFilename;
     downloadSignable.href = data.signablePdfUrl;
     signForm.elements.printedName.value = data.customerName || "";
+    signForm.elements.customerInitials.value = "";
+    clearSignatureCanvas();
+    closeCustomerSignatureModal();
     reviewOpened = false;
     reviewEndReached = false;
     setReviewState(false);
@@ -316,9 +396,13 @@ signForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (!hasSignature) {
-    donePanel.innerHTML = '<p class="error">A signature is required.</p>';
+  const printedName = signForm.elements.printedName.value.trim();
+  const customerInitials = signForm.elements.customerInitials.value.trim();
+
+  if (!signatureDetailsSaved || !printedName || !customerInitials || !hasSignature) {
+    donePanel.innerHTML = '<p class="error">Save the customer printed name, initials, and drawn signature before finalizing.</p>';
     donePanel.classList.remove("hidden");
+    openCustomerSignatureModal();
     return;
   }
 
@@ -330,7 +414,7 @@ signForm.addEventListener("submit", async (event) => {
 
   const submit = signForm.querySelector("button[type='submit']");
   submit.disabled = true;
-  submit.textContent = "Finalizing...";
+  submit.textContent = "Saving signatures...";
 
   try {
     const response = await fetch(`/api/packets/${packetId}/sign`, {
@@ -338,8 +422,8 @@ signForm.addEventListener("submit", async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         password,
-        printedName: signForm.elements.printedName.value.trim(),
-        customerInitials: signForm.elements.customerInitials.value.trim(),
+        printedName,
+        customerInitials,
         customerNotes: signForm.elements.customerNotes.value.trim(),
         digitalSignatureAccepted: signForm.elements.digitalSignatureAccepted.checked,
         communicationConsent: {
@@ -363,8 +447,8 @@ signForm.addEventListener("submit", async (event) => {
     pdfDownloadFilename = data.downloadFilename || pdfDownloadFilename;
 
     const emailText = data.email?.sent
-      ? "The final packet was emailed to Edgewater."
-      : data.email?.reason || "The final packet was saved.";
+      ? "A copy has been sent to Edgewater. We will reach out soon."
+      : data.email?.reason || "Your signed contract was saved for Edgewater. We will reach out soon.";
 
     donePanel.innerHTML = postSignActionHtml(emailText);
     donePanel.classList.remove("hidden");
@@ -375,7 +459,7 @@ signForm.addEventListener("submit", async (event) => {
     donePanel.classList.remove("hidden");
   } finally {
     submit.disabled = false;
-    submit.textContent = "Finalize signed PDF";
+    submit.textContent = "Save and Confirm Signatures";
   }
 });
 
@@ -383,18 +467,15 @@ window.addEventListener("resize", resizeCanvasForDisplay);
 
 function postSignActionHtml(emailText) {
   return `
-    <p><strong>Signed packet finalized.</strong> ${emailText}</p>
+    <p><strong>Thank you.</strong></p>
+    <p>${escapeHtml(emailText)}</p>
     <p><strong>Signed date:</strong> ${formatDateOnly()}</p>
-    <div class="signature-list action-list">
-      <strong>What would you like to do now?</strong>
-      <label><input type="checkbox" name="afterAction" value="download" checked /> Download/save signed PDF</label>
-      <label><input type="checkbox" name="afterAction" value="print" /> Open print view for signed PDF</label>
-      <label><input type="checkbox" name="afterAction" value="email" /> Email signed PDF to me</label>
-      <label>Email address<input id="customer-final-email" type="email" value="${escapeHtml(customerEmail)}" /></label>
-    </div>
+    <p>If you want a copy for yourself, download and save it or print it here.</p>
     <div class="result-actions">
-      <button type="button" id="run-after-actions">Done</button>
-      <a href="${finalPdfUrl}" target="_blank" rel="noreferrer">Open signed PDF</a>
+      <button type="button" id="download-signed-pdf" class="primary">Download and save</button>
+      <button type="button" id="print-signed-pdf">Print</button>
+      <a href="${finalPdfUrl}" target="_blank" rel="noreferrer">View signed PDF</a>
+      <button type="button" id="run-after-actions" class="ghost">Done</button>
     </div>
     <div id="post-sign-account-panel"></div>
     <div id="after-action-status" class="status-list"></div>
@@ -521,62 +602,29 @@ function triggerPrint() {
 }
 
 function wirePostSignActions() {
+  document.querySelector("#download-signed-pdf")?.addEventListener("click", () => {
+    try {
+      triggerDownload();
+      setActionStatus(["Customer copy download started."]);
+    } catch (error) {
+      setActionStatus([`Download failed - ${error.message}`]);
+    }
+  });
+
+  document.querySelector("#print-signed-pdf")?.addEventListener("click", () => {
+    if (triggerPrint()) {
+      setActionStatus(["Print view opened."]);
+    } else {
+      setActionStatus(["The browser blocked the print window. Click View signed PDF, then use the browser print button."]);
+    }
+  });
+
   document.querySelector("#run-after-actions").addEventListener("click", async () => {
-    const selected = [...document.querySelectorAll('[name="afterAction"]:checked')].map((input) => input.value);
-    const statuses = [];
+    const selected = ["signed"];
+    const statuses = ["Customer finished the signing page."];
     const button = document.querySelector("#run-after-actions");
     button.disabled = true;
-    button.textContent = "Working...";
-
-    if (!selected.length) {
-      statuses.push("No download, print, or email action selected.");
-      setActionStatus(statuses);
-    }
-
-    if (selected.includes("download")) {
-      try {
-        triggerDownload();
-        statuses.push("Download/save: started.");
-      } catch (error) {
-        statuses.push(`Download/save: failed - ${error.message}`);
-      }
-      setActionStatus(statuses);
-    }
-
-    if (selected.includes("print")) {
-      try {
-        if (triggerPrint()) {
-          statuses.push("Print: opened the signed PDF for printing.");
-        } else {
-          statuses.push("Print: browser blocked the automatic print window. Click Open signed PDF, then use the browser print button.");
-        }
-      } catch (error) {
-        statuses.push(`Print: failed - ${error.message}`);
-      }
-      setActionStatus(statuses);
-    }
-
-    if (selected.includes("email")) {
-      try {
-        const email = document.querySelector("#customer-final-email").value.trim();
-        if (!isValidEmail(email)) {
-          throw new Error("Enter a valid email address before sending.");
-        }
-        const response = await fetch(`/api/packets/${packetId}/email-final-to-customer`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password, email }),
-        });
-        const data = await readJsonResponse(response);
-        if (!response.ok || !data.sent) {
-          throw new Error(data.reason || data.error || "Email was not sent.");
-        }
-        statuses.push(`Email: sent to ${data.to || email}.`);
-      } catch (error) {
-        statuses.push(`Email: failed - ${error.message}`);
-      }
-      setActionStatus(statuses);
-    }
+    button.textContent = "Closing...";
 
     try {
       const response = await fetch(`/api/packets/${packetId}/complete`, {
@@ -586,9 +634,9 @@ function wirePostSignActions() {
       });
       const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.error || "Could not close signing link.");
-      statuses.push("Done: signing link closed.");
+      statuses.push("Done.");
       setActionStatus(statuses);
-      button.textContent = "Completed";
+      button.textContent = "Done";
       showAccountPrompt(data.portalUrl || "/customer");
     } catch (error) {
       statuses.push(`Done: failed - ${error.message}`);

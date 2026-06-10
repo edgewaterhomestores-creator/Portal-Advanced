@@ -9,6 +9,7 @@ const AUTH_TOKEN_EXPIRES_KEY = 'edgewater-estimates-auth-expires-v1';
 const RESIZER_WIDTH_KEY = 'edgewater-estimates-editor-width-v1';
 const CUSTOMER_SUGGESTION_LIMIT = 8;
 const LINE_SUGGESTION_LIMIT = 8;
+const ESTIMATE_SEARCH_LIMIT = 10;
 const API_BASE = '/api/estimate-module';
 const ASSET_BASE = '/estimates-module';
 const ZIP_LOOKUP_URL = `${ASSET_BASE}/USZIPCodes202602.csv`;
@@ -23,6 +24,7 @@ const DEFAULT_INSTALLATION_ITEMS = [];
 
 const state = {
     currentEstimateId: '',
+    editingEstimateId: '',
     uploadedLogoPath: `${ASSET_BASE}/defaultLogo.png`,
     cabinetItems: cloneItems(DEFAULT_CABINET_ITEMS),
     installationItems: cloneItems(DEFAULT_INSTALLATION_ITEMS),
@@ -32,6 +34,10 @@ const state = {
     customerRecords: [],
     productRecords: [],
     installationItemRecords: [],
+    estimateSearchQuery: '',
+    estimateSearchResults: [],
+    estimateSearchLoading: false,
+    estimateSearchError: '',
     visibleCustomerSuggestions: [],
     managerSelected: new Set(),
     entities: {
@@ -50,6 +56,9 @@ let lastGeneratedEstimateFilename = '';
 let zipLookupPromise = null;
 let zipLookupMap = null;
 let installerQuickAddKeys = new Set();
+let estimateLoginRedirectStarted = false;
+let estimateSearchTimer = null;
+let estimateSearchActiveId = 0;
 
 function documentYearPrefix(dateValue = todayDateValue()) {
     const value = displayDate(dateValue) || todayDateValue();
@@ -455,11 +464,20 @@ function authHeaders(extra = {}) {
     return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
 }
 
+function redirectToPortalLogin() {
+    if (estimateLoginRedirectStarted) return;
+    estimateLoginRedirectStarted = true;
+    const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.location.href = `/?next=${encodeURIComponent(next)}`;
+}
+
 async function apiFetch(url, options = {}) {
     const headers = authHeaders(options.headers || {});
     const response = await fetch(url, { ...options, headers });
     if (response.status === 401) {
-        showUnlockPanel();
+        hideUnlockPanel();
+        setStatus('Staff login required. Returning to portal login.', 'error');
+        redirectToPortalLogin();
     }
     return response;
 }
@@ -583,6 +601,32 @@ function currentEstimateRecord() {
     return state.savedEstimates.find((estimate) => estimate.estimateId === state.currentEstimateId && !estimate.deleted) || null;
 }
 
+function estimateIdentityKey(estimate = {}) {
+    return String(estimate.estimateNumber || estimate.estimateId || '').trim().toLowerCase();
+}
+
+function removeDuplicateSavedEstimateIdentities(primaryEstimate = {}) {
+    const key = estimateIdentityKey(primaryEstimate);
+    if (!key || !primaryEstimate.estimateId) return;
+    state.savedEstimates = state.savedEstimates.filter((estimate) => {
+        if (!estimate || estimate.estimateId === primaryEstimate.estimateId) return true;
+        return estimateIdentityKey(estimate) !== key;
+    });
+}
+
+function currentEditableEstimateRecord() {
+    const anchorId = state.editingEstimateId || state.currentEstimateId;
+    const byId = state.savedEstimates.find((estimate) => estimate.estimateId === anchorId && !estimate.deleted);
+    if (byId) return byId;
+
+    const estimateNumber = String($('estimateNumber')?.value || '').trim();
+    if (!estimateNumber) return null;
+    return state.savedEstimates.find((estimate) => {
+        if (!estimate || estimate.deleted) return false;
+        return String(estimate.estimateNumber || estimate.estimateId || '').trim() === estimateNumber;
+    }) || null;
+}
+
 function isAcceptedEstimate(estimate = currentEstimateRecord()) {
     return String(estimate?.estimateStatus || '').trim().toLowerCase() === 'accepted';
 }
@@ -615,13 +659,11 @@ function refreshContractStartAction() {
     const button = $('toContractsBtn');
     if (!button || openedFromContract()) return;
     const accepted = isAcceptedEstimate();
-    button.classList.remove('hidden');
-    button.textContent = accepted ? 'Start Contract' : 'Contracts Page';
+    button.classList.toggle('hidden', !accepted);
+    button.textContent = 'Start Contract';
     button.href = accepted ? contractStartHref() : '/portal';
     button.dataset.startAcceptedEstimate = accepted ? '1' : '0';
-    button.title = accepted
-        ? 'Start a contract using this accepted estimate.'
-        : 'Contracts can still be created separately. This estimate must be accepted before starting a contract from it.';
+    button.title = accepted ? 'Start a contract using this accepted estimate.' : '';
     syncEstimateActionProxies();
 }
 
@@ -673,7 +715,7 @@ function setCreatedEstimateFile(filename = '') {
         element.textContent = '';
         return;
     }
-    element.textContent = `Created PDF: ${filename}`;
+    element.textContent = `Estimate PDF: ${filename}`;
     element.classList.remove('hidden');
 }
 
@@ -711,13 +753,39 @@ function mergeServerEstimateRecord(estimate = {}) {
 
     if (state.currentEstimateId === estimate.estimateId || !state.currentEstimateId) {
         state.currentEstimateId = estimate.estimateId;
+        state.editingEstimateId = estimate.estimateId;
         if (estimate.estimateNumber) setValue('estimateNumber', estimate.estimateNumber);
     }
 
     persistLocalStore();
     rebuildEntities();
-    renderSavedList();
+    renderEstimateSearchResults();
     refreshContractStartAction();
+    return true;
+}
+
+function cacheServerEstimateRecords(estimates = []) {
+    let changed = false;
+    estimates.forEach((estimate) => {
+        if (!estimate?.estimateId) return;
+        let index = state.savedEstimates.findIndex((item) => item.estimateId === estimate.estimateId);
+        if (index < 0) {
+            index = state.savedEstimates.findIndex((item) => estimateIdentityKey(item) && estimateIdentityKey(item) === estimateIdentityKey(estimate));
+        }
+        const merged = {
+            ...(index >= 0 ? state.savedEstimates[index] : {}),
+            ...estimate
+        };
+        if (index >= 0) {
+            state.savedEstimates[index] = merged;
+        } else {
+            state.savedEstimates.push(merged);
+        }
+        changed = true;
+    });
+    if (!changed) return false;
+    persistLocalStore();
+    rebuildEntities();
     return true;
 }
 
@@ -741,6 +809,10 @@ function clearLocalEstimateSyncData(serverResetId) {
     state.remoteEntities = [];
     state.remoteCustomers = [];
     state.customerRecords = [];
+    state.estimateSearchQuery = '';
+    state.estimateSearchResults = [];
+    state.estimateSearchLoading = false;
+    state.estimateSearchError = '';
     state.visibleCustomerSuggestions = [];
     state.managerSelected.clear();
     localStorage.removeItem(ESTIMATE_STORE_KEY);
@@ -748,7 +820,7 @@ function clearLocalEstimateSyncData(serverResetId) {
     localStorage.removeItem(SYNC_CONFLICTS_KEY);
     if (serverResetId) localStorage.setItem(DATA_RESET_KEY, serverResetId);
     rebuildEntities();
-    renderSavedList();
+    renderEstimateSearchResults();
 }
 
 function applyServerResetId(serverResetId) {
@@ -1265,32 +1337,142 @@ function loadInitialEstimateFromParams({ quiet = false } = {}) {
     return true;
 }
 
-function renderSavedList() {
-    const list = $('savedEstimateList');
-    if (!list) return;
+function estimateSearchTitle(estimate = {}) {
+    return [
+        estimate.customer || 'No customer',
+        estimate.estimateNumber || estimate.estimateId
+    ].filter(Boolean).join(' - ');
+}
 
-    const query = String($('estimateSearch')?.value || '').trim().toLowerCase();
-    const estimates = state.savedEstimates
-        .filter((estimate) => !estimate.deleted)
-        .filter((estimate) => !query || searchableText(estimate).includes(query))
-        .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+function singleLineText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+}
 
-    if (estimates.length === 0) {
-        list.innerHTML = `<option value="">${query ? 'No matching estimates' : 'No saved estimates'}</option>`;
+function amountText(value, fallback = '') {
+    const raw = singleLineText(value || fallback);
+    if (!raw) return '';
+    return raw.startsWith('$') ? raw : `$${raw}`;
+}
+
+function resultCellHtml(value, className, { strong = false } = {}) {
+    const text = singleLineText(value);
+    const content = strong ? `<strong>${escapeHtml(text)}</strong>` : escapeHtml(text);
+    return `<span class="result-cell ${className}" title="${escapeHtml(text)}">${content}</span>`;
+}
+
+function estimateSearchLineHtml(estimate = {}) {
+    return [
+        resultCellHtml(estimate.customer || 'No customer', 'result-name', { strong: true }),
+        resultCellHtml(estimate.customerAddress, 'result-address'),
+        resultCellHtml(estimate.customerEmail, 'result-email'),
+        resultCellHtml(estimate.customerPhone, 'result-phone'),
+        resultCellHtml(estimate.estimateNumber || estimate.estimateId, 'result-doc'),
+        resultCellHtml(displayDate(estimate.estimateDate), 'result-date'),
+        resultCellHtml(amountText(estimate.grandTotalDisplay, estimate.grandTotal), 'result-total')
+    ].join('');
+}
+
+function hideEstimateSearchResults() {
+    const results = $('estimateSearchResults');
+    if (!results) return;
+    results.hidden = true;
+}
+
+function estimateSearchRecordsForQuery(query) {
+    if (state.estimateSearchQuery === query) return state.estimateSearchResults;
+    return [];
+}
+
+function renderEstimateSearchResults() {
+    const results = $('estimateSearchResults');
+    const input = $('estimateSearch');
+    if (!results || !input) return;
+
+    const query = String(input.value || '').trim();
+    if (!query) {
+        results.innerHTML = '';
+        results.hidden = true;
+        refreshContractStartAction();
         return;
     }
 
-    list.innerHTML = estimates.map((estimate) => {
-        const customer = estimate.customer || 'No customer';
-        const date = displayDate(estimate.estimateDate) || 'No date';
-        const status = estimateResponseStatus(estimate).label;
-        return `<option value="${escapeHtml(estimate.estimateId)}">${escapeHtml(customer)} - ${escapeHtml(date)} - ${escapeHtml(status)}</option>`;
-    }).join('');
-
-    if (state.currentEstimateId && estimates.some((estimate) => estimate.estimateId === state.currentEstimateId)) {
-        list.value = state.currentEstimateId;
+    const estimates = estimateSearchRecordsForQuery(query).slice(0, ESTIMATE_SEARCH_LIMIT);
+    if (state.estimateSearchLoading && state.estimateSearchQuery === query && estimates.length === 0) {
+        results.innerHTML = '<div class="estimate-search-empty">Searching saved estimates...</div>';
+        results.hidden = false;
+        refreshContractStartAction();
+        return;
     }
+    if (state.estimateSearchError && state.estimateSearchQuery === query) {
+        results.innerHTML = `<div class="estimate-search-empty">${escapeHtml(state.estimateSearchError)}</div>`;
+        results.hidden = false;
+        refreshContractStartAction();
+        return;
+    }
+    if (estimates.length === 0) {
+        results.innerHTML = '<div class="estimate-search-empty">No matching estimates.</div>';
+        results.hidden = false;
+        refreshContractStartAction();
+        return;
+    }
+
+    results.innerHTML = estimates.map((estimate) => `
+        <button type="button" class="estimate-search-result ${estimate.estimateId === state.currentEstimateId ? 'is-current' : ''}" data-estimate-id="${escapeHtml(estimate.estimateId)}" ${estimate.estimateId === state.currentEstimateId ? 'aria-current="true"' : ''}>
+            <span class="estimate-search-line search-result-grid">${estimateSearchLineHtml(estimate)}</span>
+        </button>
+    `).join('');
     refreshContractStartAction();
+}
+
+async function runEstimateSearch(query) {
+    const searchQuery = String(query || '').trim();
+    const searchId = ++estimateSearchActiveId;
+    state.estimateSearchQuery = searchQuery;
+    state.estimateSearchError = '';
+
+    if (!searchQuery) {
+        state.estimateSearchResults = [];
+        state.estimateSearchLoading = false;
+        renderEstimateSearchResults();
+        return;
+    }
+
+    state.estimateSearchLoading = true;
+    renderEstimateSearchResults();
+
+    try {
+        const response = await apiFetch(`${API_BASE}/estimates/search?q=${encodeURIComponent(searchQuery)}&limit=${ESTIMATE_SEARCH_LIMIT}`);
+        if (response.status === 401) return;
+        const result = await safeJson(response);
+        if (!response.ok) throw new Error(result.error || result.message || 'Estimate search unavailable.');
+        if (searchId !== estimateSearchActiveId) return;
+        const estimates = Array.isArray(result.estimates) ? result.estimates : [];
+        state.estimateSearchResults = estimates;
+        cacheServerEstimateRecords(estimates);
+    } catch (error) {
+        if (searchId !== estimateSearchActiveId) return;
+        state.estimateSearchError = error.message || 'Estimate search unavailable.';
+        state.estimateSearchResults = [];
+    } finally {
+        if (searchId === estimateSearchActiveId) {
+            state.estimateSearchLoading = false;
+            renderEstimateSearchResults();
+        }
+    }
+}
+
+function handleEstimateSearchInput() {
+    const query = String($('estimateSearch')?.value || '').trim();
+    window.clearTimeout(estimateSearchTimer);
+    state.estimateSearchQuery = query;
+    state.estimateSearchResults = [];
+    state.estimateSearchError = '';
+    state.estimateSearchLoading = Boolean(query);
+    renderEstimateSearchResults();
+    if (!query) return;
+    estimateSearchTimer = window.setTimeout(() => {
+        runEstimateSearch(query);
+    }, 160);
 }
 
 function calculateTotals() {
@@ -1494,12 +1676,13 @@ function handleLineItemFocus(event) {
 }
 
 function collectFormData() {
-    const existing = state.savedEstimates.find((estimate) => estimate.estimateId === state.currentEstimateId);
+    const existing = currentEditableEstimateRecord();
     const totals = calculateTotals();
     const now = new Date().toISOString();
     const customerAddressParts = currentCustomerAddressParts();
+    const estimateId = existing?.estimateId || state.editingEstimateId || state.currentEstimateId || $('estimateNumber')?.value || makeEstimateId();
     return {
-        estimateId: state.currentEstimateId || $('estimateNumber')?.value || makeEstimateId(),
+        estimateId,
         createdAt: existing?.createdAt || now,
         updatedAt: existing?.updatedAt || now,
         logoPath: state.uploadedLogoPath,
@@ -1521,7 +1704,7 @@ function collectFormData() {
         customerPhone: $('customerPhone').value,
         customerEmail: $('customerEmail').value,
         estimateDate: $('estimateDate').value,
-        estimateNumber: $('estimateNumber')?.value || state.currentEstimateId || makeEstimateNumber($('estimateDate').value),
+        estimateNumber: existing?.estimateNumber || $('estimateNumber')?.value || estimateId || makeEstimateNumber($('estimateDate').value),
         supplier: $('supplier').value,
         styleDescription: $('styleDescription').value,
         sourceQuoteFilename: existing?.sourceQuoteFilename || '',
@@ -1804,6 +1987,7 @@ async function saveCurrentEstimate({ skipConfirm = false, silent = false, askToS
     estimate.createdAt = estimate.createdAt || now;
     estimate.estimateNumber = estimate.estimateNumber || estimate.estimateId || makeEstimateNumber(estimate.estimateDate);
     state.currentEstimateId = estimate.estimateId;
+    state.editingEstimateId = estimate.estimateId;
     setValue('estimateNumber', estimate.estimateNumber);
 
     const index = state.savedEstimates.findIndex((item) => item.estimateId === estimate.estimateId);
@@ -1812,10 +1996,11 @@ async function saveCurrentEstimate({ skipConfirm = false, silent = false, askToS
     } else {
         state.savedEstimates.push(estimate);
     }
+    removeDuplicateSavedEstimateIdentities(estimate);
 
     persistLocalStore();
     rebuildEntities();
-    renderSavedList();
+    renderEstimateSearchResults();
     if (!silent) setStatus(`Saved estimate for ${estimate.customer || 'customer'}.`, 'ready');
 
     if (navigator.onLine) {
@@ -1833,6 +2018,7 @@ function loadEstimate(id) {
     }
 
     state.currentEstimateId = estimate.estimateId;
+    state.editingEstimateId = estimate.estimateId;
     state.uploadedLogoPath = state.uploadedLogoPath || `${ASSET_BASE}/defaultLogo.png`;
     state.cabinetItems = normalizeItems(estimate.cabinetItems, DEFAULT_CABINET_ITEMS, estimate.taxable);
     state.installationItems = normalizeItems(estimate.installationItems, DEFAULT_INSTALLATION_ITEMS, false, estimate.numCabinets);
@@ -1850,10 +2036,19 @@ function loadEstimate(id) {
     renderLineItems('cabinet');
     renderLineItems('installation');
     handleDraftChanged();
-    renderSavedList();
+    renderEstimateSearchResults();
     const status = estimateResponseStatus(estimate);
     setStatus(`Loaded estimate for ${estimate.customer || 'customer'}. ${status.detail}.`, 'ready');
     refreshContractStartAction();
+}
+
+function loadEstimateFromSearch(id) {
+    const estimate = state.estimateSearchResults.find((item) => item.estimateId === id && !item.deleted)
+        || state.savedEstimates.find((item) => item.estimateId === id && !item.deleted);
+    if (estimate) cacheServerEstimateRecords([estimate]);
+    if (estimate) setValue('estimateSearch', estimateSearchTitle(estimate));
+    loadEstimate(id);
+    hideEstimateSearchResults();
 }
 
 function normalizeItems(items, fallback, taxableFallback = false, cabinetCountFallback = '') {
@@ -1882,6 +2077,7 @@ function normalizeItems(items, fallback, taxableFallback = false, cabinetCountFa
 
 function newEstimate() {
     state.currentEstimateId = '';
+    state.editingEstimateId = '';
     state.cabinetItems = cloneItems(DEFAULT_CABINET_ITEMS);
     state.installationItems = cloneItems(DEFAULT_INSTALLATION_ITEMS);
 
@@ -1899,21 +2095,10 @@ function newEstimate() {
     renderLineItems('cabinet');
     renderLineItems('installation');
     handleDraftChanged();
-    renderSavedList();
+    renderEstimateSearchResults();
     setStatus('New blank estimate.', 'ready');
     setCreatedEstimateFile('');
     refreshContractStartAction();
-}
-
-async function deleteSelectedEstimate() {
-    const id = $('savedEstimateList').value || state.currentEstimateId;
-    if (!id) {
-        setStatus('Select an estimate to delete.', 'error');
-        return;
-    }
-    const estimate = state.savedEstimates.find((item) => item.estimateId === id);
-    if (!estimate) return;
-    await deleteEstimatesByIds([id], `Delete estimate for ${estimate.customer || 'customer'}?`);
 }
 
 async function deleteEstimatesByIds(ids, confirmMessage) {
@@ -1934,7 +2119,7 @@ async function deleteEstimatesByIds(ids, confirmMessage) {
     if (deletedCount === 0) return;
     persistLocalStore();
     rebuildEntities();
-    renderSavedList();
+    renderEstimateSearchResults();
     if (uniqueIds.includes(state.currentEstimateId)) newEstimate();
     if (navigator.onLine) await syncWithServer({ silent: true, forcePush: true });
     setStatus(`${deletedCount} estimate${deletedCount === 1 ? '' : 's'} deleted locally.`, 'ready');
@@ -2125,13 +2310,27 @@ function generateFilename() {
     return `${number}_${customerName.replace(/[^a-z0-9]/gi, '_')}_${date.replace(/\D/g, '')}.pdf`;
 }
 
-function contractReturnHref(filename = lastGeneratedEstimateFilename) {
+function contractReturnHref(filename = lastGeneratedEstimateFilename, options = {}) {
     const fallback = '/contract/new?restoreDraft=1&section=estimate';
     const returnPath = safeContractReturnPath(urlParams().get('returnTo')) || fallback;
     const url = new URL(returnPath, window.location.origin);
     const customerAddress = customerAddressFromParts(currentCustomerAddressParts()).trim();
     url.searchParams.set('restoreDraft', '1');
     url.searchParams.set('section', 'estimate');
+    if (options.estimateAccepted) {
+        url.searchParams.set('estimateAccepted', '1');
+        url.searchParams.set('estimateStatus', 'accepted');
+    } else if (options.estimateStatus) {
+        url.searchParams.set('estimateStatus', options.estimateStatus);
+    }
+    if (options.changedAfterAcceptance) url.searchParams.set('estimateChangedAfterAcceptance', '1');
+    if (options.approvalBypassed) {
+        url.searchParams.set('estimateApprovalBypassed', '1');
+        url.searchParams.set('estimateApprovalBypassedAt', options.approvalBypassedAt || new Date().toISOString());
+        if (options.approvalBypassedReason) {
+            url.searchParams.set('estimateApprovalBypassedReason', options.approvalBypassedReason);
+        }
+    }
     if (filename) url.searchParams.set('estimateFile', filename);
     if (customerAddress) url.searchParams.set('estimateAddress', customerAddress);
     if ($('customer')?.value) url.searchParams.set('customer', $('customer').value);
@@ -2142,6 +2341,16 @@ function contractReturnHref(filename = lastGeneratedEstimateFilename) {
     if (Number.isFinite(total) && total > 0) url.searchParams.set('estimateTotal', total.toFixed(2));
     if (state.currentEstimateId) url.searchParams.set('estimateId', state.currentEstimateId);
     return `${url.pathname}?${url.searchParams.toString()}${url.hash}`;
+}
+
+function estimateCompletionContractOptions() {
+    const estimate = currentEstimateRecord() || collectFormData();
+    const accepted = isAcceptedEstimate(estimate);
+    return {
+        estimateAccepted: accepted,
+        estimateStatus: accepted ? 'accepted' : String(estimate?.estimateStatus || '').trim(),
+        changedAfterAcceptance: accepted && estimateChangedAfterAcceptance(estimate)
+    };
 }
 
 async function generatePDF() {
@@ -2168,11 +2377,76 @@ async function generatePDF() {
     return null;
 }
 
+async function uploadExistingEstimatePdf(file) {
+    if (!file) return;
+    if (!/\.pdf$/i.test(file.name || '') && file.type !== 'application/pdf') {
+        setStatus('Choose a PDF estimate file.', 'error');
+        return;
+    }
+
+    const button = $('uploadEstimatePdfBtn');
+    const input = $('uploadEstimatePdfInput');
+    const formData = new FormData();
+    formData.append('estimatePdf', file);
+    if (state.currentEstimateId) formData.append('estimateId', state.currentEstimateId);
+
+    try {
+        if (button) button.disabled = true;
+        setStatus('Uploading estimate PDF...', 'ready');
+        const response = await apiFetch('/api/estimates/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Estimate PDF upload failed.');
+
+        const uploaded = result.file || {};
+        lastGeneratedEstimateFilename = uploaded.fileName || '';
+        setCreatedEstimateFile(lastGeneratedEstimateFilename);
+        if (lastGeneratedEstimateFilename) {
+            await recordGeneratedPdf({
+                filename: lastGeneratedEstimateFilename,
+                sha256: uploaded.sha256 || ''
+            });
+        }
+        setStatus(lastGeneratedEstimateFilename ? `Uploaded estimate PDF ${lastGeneratedEstimateFilename}.` : 'Uploaded estimate PDF.', 'ready');
+    } catch (error) {
+        setStatus(error.message || 'Estimate PDF upload failed.', 'error');
+    } finally {
+        if (button) button.disabled = false;
+        if (input) input.value = '';
+    }
+}
+
 async function saveForContractAndReturn() {
+    const estimate = collectFormData();
+    const accepted = isAcceptedEstimate(estimate);
+    const changedAfterAcceptance = estimateChangedAfterAcceptance(estimate);
+    const returnOptions = { estimateAccepted: accepted };
+
+    if (!accepted) {
+        const confirmed = window.confirm('This estimate has not been accepted by the customer. Email it for customer approval before attaching it to a contract unless you are intentionally bypassing approval. Attach anyway?');
+        if (!confirmed) {
+            setStatus('Attach cancelled. Email the estimate for customer approval first.', 'error');
+            return;
+        }
+        returnOptions.approvalBypassed = true;
+        returnOptions.approvalBypassedReason = 'Store attached estimate before customer acceptance.';
+    } else if (changedAfterAcceptance) {
+        const confirmed = window.confirm('This estimate changed after customer acceptance. The customer should approve the changed estimate before it becomes a contract. Attach anyway?');
+        if (!confirmed) {
+            setStatus('Attach cancelled. Send the changed estimate for customer approval first.', 'error');
+            return;
+        }
+        returnOptions.changedAfterAcceptance = true;
+        returnOptions.approvalBypassed = true;
+        returnOptions.approvalBypassedReason = 'Store bypassed changed-estimate approval to attach this estimate to the contract.';
+    }
+
     const filename = await generatePDF();
     if (!filename) return;
     setStatus('Estimate saved. Returning to contract...', 'ready');
-    window.location.href = contractReturnHref(filename);
+    window.location.href = contractReturnHref(filename, returnOptions);
 }
 
 async function startContractFromAcceptedEstimate() {
@@ -2204,6 +2478,7 @@ async function syncWithServer({ silent = false, forcePush = false } = {}) {
 
     try {
         let lastSync = localStorage.getItem(SYNC_LAST_KEY) || '';
+        if (!state.savedEstimates.some((estimate) => estimate && !estimate.deleted)) lastSync = '';
         let pullResponse = await apiFetch(`${API_BASE}/sync/pull${lastSync ? `?since=${encodeURIComponent(lastSync)}` : ''}`);
         if (pullResponse.status === 401) {
             if (!silent) setStatus('Unlock online sync to use the hosted database.', 'error');
@@ -2298,7 +2573,7 @@ function mergePulledEstimates(estimates) {
     if (changed) {
         persistLocalStore();
         rebuildEntities();
-        renderSavedList();
+        renderEstimateSearchResults();
         if (state.currentEstimateId) {
             const current = state.savedEstimates.find((estimate) => estimate.estimateId === state.currentEstimateId);
             if (current && !current.deleted) loadEstimate(current.estimateId);
@@ -2338,8 +2613,9 @@ async function safeJson(response) {
 }
 
 function showUnlockPanel() {
-    const panel = $('syncUnlockSection');
-    if (panel) panel.hidden = false;
+    hideUnlockPanel();
+    setStatus('Staff login required. Returning to portal login.', 'error');
+    redirectToPortalLogin();
 }
 
 function hideUnlockPanel() {
@@ -2513,17 +2789,32 @@ function bindEvents() {
         }
     });
 
-    $('estimateSearch').addEventListener('input', renderSavedList);
+    $('estimateSearch').addEventListener('input', handleEstimateSearchInput);
     $('estimateDate').addEventListener('change', () => {
         if (!state.currentEstimateId) setValue('estimateNumber', makeEstimateNumber($('estimateDate').value || todayDateValue()));
     });
-    $('loadEstimateBtn').addEventListener('click', () => loadEstimate($('savedEstimateList').value));
-    $('savedEstimateList').addEventListener('change', (event) => {
-        if (event.target.value) loadEstimate(event.target.value);
+    $('estimateSearchResults').addEventListener('click', (event) => {
+        const button = event.target.closest('.estimate-search-result');
+        if (!button?.dataset.estimateId) return;
+        loadEstimateFromSearch(button.dataset.estimateId);
+    });
+    $('estimateSearch').addEventListener('focus', () => {
+        const query = String($('estimateSearch')?.value || '').trim();
+        if (query && state.estimateSearchQuery !== query) {
+            handleEstimateSearchInput();
+            return;
+        }
+        renderEstimateSearchResults();
+    });
+    document.addEventListener('click', (event) => {
+        const searchControl = event.target.closest('.estimate-search-control');
+        if (!searchControl) hideEstimateSearchResults();
     });
     $('newEstimateBtn').addEventListener('click', newEstimate);
-    $('deleteEstimateBtn').addEventListener('click', deleteSelectedEstimate);
-    $('manageEstimatesBtn').addEventListener('click', openEstimateManager);
+    $('uploadEstimatePdfBtn').addEventListener('click', () => $('uploadEstimatePdfInput').click());
+    $('uploadEstimatePdfInput').addEventListener('change', (event) => {
+        uploadExistingEstimatePdf(event.target.files?.[0]);
+    });
     $('saveEstimateBtn').addEventListener('click', () => saveCurrentEstimate());
     $('saveBackContractBtn').addEventListener('click', saveForContractAndReturn);
     $('clearEstimateBtn').addEventListener('click', () => {
@@ -2566,6 +2857,9 @@ function bindModals() {
 
     $('downloadPrintBtn').addEventListener('click', () => {
         if (!requireCompleteEstimate()) return;
+        setDownloadPrintMessage('Choose what to do with this estimate.');
+        setEstimateCompletionActionsVisible(false);
+        updateEstimateCompletionActions();
         downloadPrintModal.style.display = 'block';
     });
 
@@ -2587,6 +2881,14 @@ function bindModals() {
         if (event.target === downloadPrintModal) downloadPrintModal.style.display = 'none';
         if (event.target === emailModal) emailModal.style.display = 'none';
     });
+
+    $('completeNewEstimate')?.addEventListener('click', () => {
+        downloadPrintModal.style.display = 'none';
+        newEstimate();
+    });
+    $('downloadPrintStayBtn')?.addEventListener('click', () => {
+        downloadPrintModal.style.display = 'none';
+    });
 }
 
 function bindDownloadAndEmail() {
@@ -2599,8 +2901,7 @@ function bindDownloadAndEmail() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        $('downloadPrintModal').style.display = 'none';
-        window.setTimeout(showEstimateCompletionPrompt, 600);
+        showEstimateCompletionPrompt('Download started. Choose what to do next.');
     });
 
     $('printEstimateBtn').addEventListener('click', async () => {
@@ -2612,18 +2913,18 @@ function bindDownloadAndEmail() {
                 printWindow.focus();
                 setTimeout(() => {
                     printWindow.print();
-                    showEstimateCompletionPrompt();
+                    showEstimateCompletionPrompt('Print opened. Choose what to do next.');
                 }, 500);
             });
         } else {
-            window.setTimeout(showEstimateCompletionPrompt, 600);
+            showEstimateCompletionPrompt('Print did not open. Choose what to do next.');
         }
-        $('downloadPrintModal').style.display = 'none';
     });
 
     $('emailForm').addEventListener('submit', async function(event) {
         event.preventDefault();
         if (!requireCompleteEstimate()) return;
+        setEmailSendingState(true);
         await saveCurrentEstimate({ skipConfirm: true, silent: true, askToSaveLookup: true });
         try {
             const response = await fetch(`${API_BASE}/email-estimate`, {
@@ -2646,19 +2947,42 @@ function bindDownloadAndEmail() {
                 $('emailModal').style.display = 'none';
                 this.reset();
                 showEstimateCompletionPrompt();
+                setEmailSendingState(false);
             } else {
+                setEmailSendingState(false);
                 alert('Error sending email: ' + result.message);
             }
         } catch (error) {
+            setEmailSendingState(false);
             alert('Error sending email: ' + error.message);
         }
     });
 }
 
-function estimateReturnTarget() {
-    return openedFromContract()
-        ? { href: contractReturnHref(), label: 'Back to Contract' }
-        : { href: '/portal', label: 'To Contracts' };
+function setEmailSendingState(isSending) {
+    const progress = $('emailSendingProgress');
+    const sendButton = $('sendEstimateEmailBtn');
+    const recipient = $('recipientEmail');
+    const closeButton = $('emailModal')?.querySelector('[data-modal="email"]');
+
+    if (progress) progress.hidden = !isSending;
+    if (sendButton) {
+        sendButton.disabled = isSending;
+        sendButton.textContent = isSending ? 'Sending...' : 'Send Email';
+    }
+    if (recipient) recipient.disabled = isSending;
+    if (closeButton) closeButton.disabled = isSending;
+}
+
+function estimateReturnTarget({ completion = false } = {}) {
+    if (openedFromContract()) return { href: contractReturnHref(), label: 'Back to Contract' };
+    if (completion) {
+        return {
+            href: contractReturnHref(lastGeneratedEstimateFilename, estimateCompletionContractOptions()),
+            label: 'To Contracts'
+        };
+    }
+    return { href: '/portal', label: 'To Contracts' };
 }
 
 function updateCancelEstimateAction() {
@@ -2668,44 +2992,36 @@ function updateCancelEstimateAction() {
     syncEstimateActionProxies();
 }
 
-function showEstimateCompletionPrompt() {
-    let modal = $('estimateCompleteModal');
-    const target = estimateReturnTarget();
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'estimateCompleteModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <button type="button" class="close" data-complete-close aria-label="Close">&times;</button>
-                <h2>Estimate Complete</h2>
-                <p>Do you need another estimate, or do you want to return to the previous workflow?</p>
-                <div class="modal-actions">
-                    <button type="button" id="completeNewEstimate" class="btn btn-primary">New Estimate</button>
-                    <a id="completeReturnLink" class="btn btn-secondary" href="/portal">Back to Home</a>
-                </div>
-            </div>
-        `;
-        document.body.append(modal);
-        modal.querySelector('[data-complete-close]').addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-        modal.querySelector('#completeNewEstimate').addEventListener('click', () => {
-            modal.style.display = 'none';
-            newEstimate();
-        });
+function setDownloadPrintMessage(message) {
+    const element = $('downloadPrintMessage');
+    if (element) element.textContent = message || 'Choose what to do with this estimate.';
+}
+
+function setEstimateCompletionActionsVisible(visible) {
+    const actions = $('estimateCompleteActions');
+    if (actions) actions.hidden = !visible;
+}
+
+function updateEstimateCompletionActions() {
+    const target = estimateReturnTarget({ completion: true });
+    const link = $('completeReturnLink');
+    if (link) {
+        link.href = target.href;
+        link.textContent = target.label;
     }
-    const link = modal.querySelector('#completeReturnLink');
-    link.href = target.href;
-    link.textContent = target.label;
-    modal.style.display = 'block';
+}
+
+function showEstimateCompletionPrompt(message) {
+    setDownloadPrintMessage(message || 'Estimate output started. Choose what to do next.');
+    setEstimateCompletionActionsVisible(true);
+    updateEstimateCompletionActions();
+    const modal = $('downloadPrintModal');
+    if (modal) modal.style.display = 'block';
 }
 
 function configureEstimateMode() {
     if (openedFromContract()) {
         $('saveEstimateBtn').textContent = 'Save Estimate';
-        $('downloadPrintBtn').classList.add('hidden');
-        $('emailBtn').classList.add('hidden');
         $('saveBackContractBtn').textContent = 'Save and Attach to Contract';
         $('saveBackContractBtn').classList.remove('hidden');
         updateCancelEstimateAction();
@@ -2771,10 +3087,13 @@ async function init() {
     const selectedEstimateReference = directEstimateReference();
     if (initialQuery && !selectedEstimateReference) setValue('estimateSearch', initialQuery);
     configureEstimateMode();
-    renderSavedList();
+    renderEstimateSearchResults();
     const loadedSelectedEstimate = loadInitialEstimateFromParams({ quiet: true });
     handleDraftChanged();
     setStatus(loadedSelectedEstimate ? 'Selected estimate loaded.' : 'Local estimates ready.', 'ready');
+    if (!loadedSelectedEstimate && $('estimateSearch')?.value.trim()) {
+        runEstimateSearch($('estimateSearch').value.trim());
+    }
     checkSession();
 }
 

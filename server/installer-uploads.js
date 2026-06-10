@@ -10,6 +10,11 @@ const STATE_PATH = path.join(SETTINGS_DIR, "installer-upload-states.json");
 const PORTAL_SETTINGS_KEY = "installer_upload_states";
 const STORE_DEPARTMENTS = new Set(["cabinet", "floor"]);
 const STATUS_VALUES = new Set(["inbox", "assigned", "archived", "deleted"]);
+const PHOTO_STAGE_LABELS = {
+  before: "Before",
+  during: "During",
+  after: "After",
+};
 
 function clean(value) {
   return String(value ?? "").replace(/\s+/g, " ").trim();
@@ -189,6 +194,15 @@ function uploadDepartmentLabel(value) {
   return "Unknown";
 }
 
+function normalizePhotoStage(value) {
+  const stage = cleanLower(value);
+  return PHOTO_STAGE_LABELS[stage] ? stage : "";
+}
+
+function photoStageLabel(value) {
+  return PHOTO_STAGE_LABELS[normalizePhotoStage(value)] || "Not selected";
+}
+
 function uploadSearchText(upload) {
   return [
     upload.uploadId,
@@ -198,6 +212,8 @@ function uploadSearchText(upload) {
     upload.jobAddress,
     upload.storeDepartment,
     upload.storeDepartmentLabel,
+    upload.photoStage,
+    upload.photoStageLabel,
     upload.status,
     upload.assignment?.customerName,
     upload.assignment?.customerPhone,
@@ -217,6 +233,7 @@ function mergeUpload(details, folderName, state = {}) {
   const status = normalizeStatus(state.status);
   const files = Array.isArray(details.files) ? details.files : [];
   const storeDepartment = normalizeUploadDepartment(state.storeDepartment || details.storeDepartment);
+  const photoStage = normalizePhotoStage(state.photoStage || details.photoStage);
   return {
     uploadId,
     folderName,
@@ -225,6 +242,8 @@ function mergeUpload(details, folderName, state = {}) {
     jobAddress: clean(details.jobAddress) || "Not entered",
     storeDepartment,
     storeDepartmentLabel: clean(state.storeDepartmentLabel || details.storeDepartmentLabel) || uploadDepartmentLabel(storeDepartment),
+    photoStage,
+    photoStageLabel: clean(state.photoStageLabel || details.photoStageLabel) || photoStageLabel(photoStage),
     photoCount: Number(details.photoCount || files.length || 0),
     uploadedAt: clean(details.uploadedAt || details.detailsUpdatedAt),
     uploadedAtDisplay: clean(details.uploadedAtDisplay),

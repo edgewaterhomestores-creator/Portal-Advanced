@@ -1,7 +1,5 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const { execFile } = require("node:child_process");
-const { promisify } = require("node:util");
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 
 const {
@@ -15,16 +13,42 @@ const {
 const { generatedPath, sha256File } = require("./storage");
 const { formatDateDisplay } = require("./validation");
 
-const execFileAsync = promisify(execFile);
-
 const ROOT = path.resolve(__dirname, "..");
 const TEMPLATE_PATH = path.join(ROOT, "assets", "templates", "customer-packet.pdf");
-const ENCRYPT_SCRIPT = path.join(ROOT, "scripts", "encrypt_pdf.py");
 const REQUIRED_PAGES = [4];
 const CUSTOMER_HIDDEN_PAGES = [11, 13];
 const PAIRED_CUSTOMER_PAGES = {
   15: 16,
 };
+
+const PRINT_PAGE_GROUPS = [
+  { title: "Customer Information", pages: [1] },
+  { title: "Quick Measurement", pages: [2] },
+  { title: "Estimate", pages: [3] },
+  { title: "Legal Disclaimers", pages: [4] },
+  { title: "Purchase Agreement", pages: [5, 6, 7, 8] },
+  { title: "Split Payment Addendum", pages: [9] },
+  { title: "Acknowledgements / Receipts", pages: [10] },
+  { title: "Vendor Job Orders", pages: [11] },
+  { title: "Additional Notes", pages: [12] },
+  { title: "Material / Receiving", pages: [13] },
+  { title: "Chain-of-Custody Release", pages: [14] },
+  { title: "Installer Job Agreement", pages: [15] },
+  { title: "Delivery/Installation Checklist", pages: [16] },
+  { title: "Delivery Signoff", pages: [17] },
+  { title: "Customer Pickup Release", pages: [18] },
+];
+
+const PRINT_PAGE_LOOKUP = new Map(
+  PRINT_PAGE_GROUPS.flatMap((group) => group.pages.map((page, index) => [
+    page,
+    {
+      title: group.title,
+      page: index + 1,
+      total: group.pages.length,
+    },
+  ])),
+);
 
 function clean(value) {
   return String(value ?? "").trim();
@@ -119,7 +143,7 @@ function generatedPassword(data) {
   const contactToken = phone.length === 4 ? phone : emailToken;
 
   if (initials.length < 2 || !addressDigits || !contactToken) {
-    throw new Error("Customer first and last name initials, address number, and either a phone number or email are required for PDF password protection.");
+    throw new Error("Customer first and last name initials, address number, and either a phone number or email are required for contract access.");
   }
 
   return `${initials}${addressDigits}${contactToken}`;
@@ -266,6 +290,27 @@ function drawHeader(page, font, data) {
 
   HEADER_FIELDS.forEach((field) => {
     drawValue(page, font, values[field.key], field.x, field.y, field.width, { size: 8.5 });
+  });
+}
+
+function drawPrintPageLabels(pages, font, originalPageNumbers) {
+  pages.forEach((page, index) => {
+    const originalPageNumber = Number(originalPageNumbers[index]);
+    const label = PRINT_PAGE_LOOKUP.get(originalPageNumber);
+    if (!label) return;
+
+    const text = `${label.title} - Page ${label.page}/${label.total}`;
+    const { width } = page.getSize();
+    const size = 8;
+    const textWidth = font.widthOfTextAtSize(text, size);
+
+    page.drawText(text, {
+      x: width - textWidth - 28,
+      y: 18,
+      size,
+      font,
+      color: rgb(0.12, 0.16, 0.18),
+    });
   });
 }
 
@@ -672,28 +717,19 @@ async function buildUnencryptedPdf(data, outputPath, mode, signature = null) {
     await drawFinalSignaturePack(pdfDoc, font, data, signature);
   }
 
+  const retainedPageNumbers = includedPageNumbers(data);
   removeExcludedPages(pdfDoc, data);
+  drawPrintPageLabels(pdfDoc.getPages(), font, retainedPageNumbers);
 
   const bytes = await pdfDoc.save({ useObjectStreams: false });
   await fs.writeFile(outputPath, bytes);
 }
 
-async function encryptPdf(inputPath, outputPath, password) {
-  const python = process.env.PYTHON_BIN || "python";
-  await execFileAsync(python, [ENCRYPT_SCRIPT, inputPath, outputPath, password], {
-    windowsHide: true,
-    timeout: 60000,
-  });
-}
-
 async function generatePdf(packet, kind, signature = null) {
   const password = generatedPassword(packet.data);
-  const tmpPath = generatedPath(packet.id, kind, false);
   const finalPath = generatedPath(packet.id, kind, true);
 
-  await buildUnencryptedPdf(packet.data, tmpPath, kind, signature);
-  await encryptPdf(tmpPath, finalPath, password);
-  await fs.rm(tmpPath, { force: true });
+  await buildUnencryptedPdf(packet.data, finalPath, kind, signature);
 
   return {
     path: finalPath,
@@ -722,6 +758,7 @@ async function generateBlankTemplatePages(pageNumbers) {
   const font = await outputPdf.embedFont(StandardFonts.Helvetica);
   const boldFont = await outputPdf.embedFont(StandardFonts.HelveticaBold);
   applyEstimateWordingOverlays(outputPdf.getPages(), font, boldFont, selected);
+  drawPrintPageLabels(outputPdf.getPages(), font, selected);
   return outputPdf.save({ useObjectStreams: false });
 }
 
