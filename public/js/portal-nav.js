@@ -284,6 +284,27 @@
     }
   }
 
+  async function loadVersionLink() {
+    const link = nav.querySelector("[data-portal-version]");
+    if (!link) return;
+    try {
+      const response = await fetch("/api/version", { cache: "no-store" });
+      if (!response.ok) throw new Error("Version not available");
+      const version = await readJsonResponse(response);
+      const label = version.packageLabel || (version.commit ? `Commit ${version.commit}` : "");
+      if (!label) return;
+      link.textContent = label;
+      link.title = [
+        version.packageLabel ? `Package: ${version.packageLabel}` : "",
+        version.commit ? `Commit: ${version.commit}` : "",
+        version.builtAt ? `Built: ${version.builtAt}` : "",
+      ].filter(Boolean).join("\n") || "Open version details";
+      link.classList.remove("hidden");
+    } catch (_error) {
+      link.classList.add("hidden");
+    }
+  }
+
   const context = pageContext();
   const staffPage = isStaffPage();
   const path = window.location.pathname;
@@ -315,6 +336,7 @@
       ${context?.actions?.map((action) => `<a class="button-link" href="${action.href}">${action.label}</a>`).join("") || ""}
       ${staffPage ? '<a class="button-link" href="/QuickPaidContract.html">Quick Contracts</a>' : ""}
       ${staffPage ? `<a class="button-link portal-icon-link${path === "/admin" ? " active" : ""}" href="/admin" aria-label="Admin Menu" title="Admin Menu"><span aria-hidden="true">&#9881;</span><span>${path === "/admin" ? "Admin Menu" : "Admin"}</span></a>` : ""}
+      ${staffPage ? '<a class="portal-version-link hidden" href="/api/version" target="_blank" rel="noopener" data-portal-version>Version</a>' : ""}
       ${context ? '<button type="button" class="ghost portal-tips-button" data-portal-tips>Show Tips</button>' : ""}
       <button type="button" class="ghost portal-help-button" data-portal-help aria-label="Help">?</button>
       <button type="button" class="ghost" ${exitId} data-portal-exit>${exitLabel}</button>
@@ -325,6 +347,7 @@
   window.dispatchEvent(new CustomEvent("portal:nav-ready", { detail: { nav, staffPage, context, path } }));
 
   loadNavLogo();
+  loadVersionLink();
   if (!staffPage) {
     fetch("/api/session")
       .then((response) => (response.ok ? readJsonResponse(response) : null))

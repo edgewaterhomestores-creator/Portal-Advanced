@@ -10,6 +10,7 @@ const { PDFDocument } = require("pdf-lib");
 const { mountQuickContractRoutes } = require("./quick-contract");
 const { publicBaseUrl } = require("./public-url");
 const { createPostgresSessionStore } = require("./session-store");
+const packageInfo = require("../package.json");
 
 const { databaseConfigured, deleteContractDraftsForOwner, disableDatabase, ensureLookupSchema, listContractDrafts, listLookupRecords, loadContractDraft, query, saveContractDraft } = require("./db");
 const {
@@ -95,6 +96,7 @@ const {
 
 const ROOT = path.resolve(__dirname, "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
+const BUILD_INFO_PATH = path.join(ROOT, "build-info.json");
 const PORT = Number(process.env.PORT || 3000);
 const REQUIRED_PAGES = [4];
 const CUSTOMER_HIDDEN_PAGES = [11, 13];
@@ -166,6 +168,30 @@ app.use(express.static(PUBLIC_DIR, { index: false }));
 
 function text(value) {
   return String(value ?? "").trim();
+}
+
+async function loadBuildInfo() {
+  try {
+    return JSON.parse(await fs.readFile(BUILD_INFO_PATH, "utf8"));
+  } catch (_error) {
+    return {};
+  }
+}
+
+async function versionInfo() {
+  const build = await loadBuildInfo();
+  const packageLabel = text(process.env.APP_PACKAGE_LABEL || build.packageLabel || build.package || "");
+  const commit = text(process.env.APP_COMMIT || build.commit || build.sourceCommit || "");
+  const builtAt = text(process.env.APP_BUILT_AT || build.builtAt || "");
+  return {
+    ok: true,
+    app: "contracts-portal",
+    name: packageInfo.name,
+    appVersion: packageInfo.version,
+    packageLabel,
+    commit,
+    builtAt,
+  };
 }
 
 function customerPortalEnabled() {
@@ -1989,6 +2015,14 @@ registerEstimateModule(app, { requireAuth });
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+app.get("/api/version", async (_req, res, next) => {
+  try {
+    res.json(await versionInfo());
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get("/api/setup/status", async (_req, res, next) => {

@@ -1,5 +1,6 @@
 node_modules/
 .env
+build-info.json
 data/generated/*
 data/packets/*
 data/logs/*.log
